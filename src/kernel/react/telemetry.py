@@ -16,21 +16,33 @@ from kernel.provider.telemetry import _tracer
 logger = logging.getLogger(__name__)
 
 
+class _StepSpanHandle:
+    """供 engine 在思考结果确定后补充 action/tool_name 属性（创建时仅知步数）。"""
+
+    def __init__(self, span):
+        self._span = span
+
+    def set_action(self, action: str, tool_name: str | None = None) -> None:
+        def _record():
+            self._span.set_attribute("react.step.action", action)
+            if tool_name:
+                self._span.set_attribute("react.step.tool_name", tool_name)
+
+        _safe(_record)
+
+
 @contextmanager
-def react_step_span(step_index: int, action: str, tool_name: str | None = None):
+def react_step_span(step_index: int):
     try:
         span_cm = _tracer.start_as_current_span("react.step")
         span = span_cm.__enter__()
         span.set_attribute("react.step.index", step_index)
-        span.set_attribute("react.step.action", action)
-        if tool_name:
-            span.set_attribute("react.step.tool_name", tool_name)
     except Exception:
         logger.warning("react.step span 创建失败，运行继续", exc_info=True)
         span_cm, span = None, None
 
     try:
-        yield
+        yield _StepSpanHandle(span)
     except Exception as exc:
         _safe(lambda: span.set_status(Status(StatusCode.ERROR, type(exc).__name__)))
         _safe(lambda: span.set_attribute("error.type", type(exc).__name__))
