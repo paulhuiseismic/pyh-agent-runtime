@@ -25,6 +25,7 @@ from kernel.provider.models import (
     TokenUsage,
 )
 from kernel.provider.pricing import calculate_cost, estimate_input_tokens
+from kernel.provider.telemetry import llm_call_span
 
 _CHAT_COMPLETIONS_PATH = "/v1/chat/completions"
 
@@ -55,6 +56,21 @@ class LLMProvider:
         await self._client.aclose()
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
+        # span 覆盖全路径：成功、全部异常、发出前拒绝（FR-006）；
+        # 遥测自身失败不影响调用（FR-007，见 telemetry 模块）
+        with llm_call_span(
+            tenant_id=request.tenant_id, model=request.model
+        ) as span_recorder:
+            response = await self._complete_inner(request)
+            span_recorder.record_success(
+                response_model=response.model,
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens,
+                cost_usd=response.cost_usd,
+            )
+            return response
+
+    async def _complete_inner(self, request: LLMRequest) -> LLMResponse:
         limits = request.limits or self._default_limits
 
         # 校验链：请求结构/tenant_id/limits 已在 dataclass 构造时校验；
