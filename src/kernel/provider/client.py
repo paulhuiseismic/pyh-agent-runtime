@@ -4,6 +4,8 @@
 litellm-proxy-contract.md；调用状态机见 data-model.md。
 """
 
+import asyncio
+
 import httpx
 
 from kernel.provider.errors import (
@@ -77,12 +79,15 @@ class LLMProvider:
             payload["temperature"] = request.temperature
 
         try:
-            response = await self._client.post(
-                _CHAT_COMPLETIONS_PATH,
-                json=payload,
-                timeout=limits.timeout_seconds,
-            )
-        except httpx.TimeoutException as exc:
+            # asyncio.timeout 兜底保证"必然终止"（SC-003），不依赖传输层
+            # 是否履行 httpx 超时（如测试用的 MockTransport 就不履行）
+            async with asyncio.timeout(limits.timeout_seconds):
+                response = await self._client.post(
+                    _CHAT_COMPLETIONS_PATH,
+                    json=payload,
+                    timeout=limits.timeout_seconds,
+                )
+        except (httpx.TimeoutException, TimeoutError) as exc:
             raise CallTimeoutError(limits.timeout_seconds) from exc
         except httpx.HTTPError as exc:
             raise ProxyConnectionError(detail=str(exc)) from exc
