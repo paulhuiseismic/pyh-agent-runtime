@@ -47,7 +47,7 @@ token 与成本上限；所有 LLM 调用/tool 执行/消息进出发出 OTel Ge
 | # | Feature | 层 | 状态 |
 |---|---------|-----|------|
 | 001 | [内核骨架 + provider](specs/001-kernel-provider/spec.md) | 内核 | ✅ 已完成 |
-| 002 | ReAct 引擎 | 内核 | 待 specify |
+| 002 | [ReAct 引擎](specs/002-react-engine/spec.md) | 内核 | ✅ 已完成 |
 | 003 | memory 压缩与上下文管理 | 内核 | 待 specify |
 | 004 | plugin tool 插件机制 + sandbox | 内核 + 执行环境 | 待 specify |
 | 005 | 平台服务层 + web service（REST API）+ 运行调度 | 平台 | 待 specify |
