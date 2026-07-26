@@ -8,3 +8,4 @@
 | httpx | BSD-3-Clause | Python 库依赖 | — |
 | OpenTelemetry Python (opentelemetry-api / opentelemetry-sdk) | Apache-2.0 | Python 库依赖 | — |
 | pytest / pytest-asyncio | MIT / Apache-2.0 | dev 依赖，不进入生产分发 | — |
+| aiosqlite | MIT | Python 库依赖（memory 模块的异步 SQLite 驱动） | — |
