@@ -9,6 +9,9 @@
 | `demo_proxy.py` | 真实 LiteLLM proxy | provider 对接真实模型的最小示例 |
 | `demo_react_stub.py` | 无（httpx.MockTransport） | react：直接回答 / 工具调用 / 步数耗尽 |
 | `demo_react_weather.py` | 真实 LiteLLM proxy + 真实 Open-Meteo API | react + provider 组合：查天气给穿衣建议 |
+| `demo_memory_stub.py` | 无（httpx.MockTransport） | memory：会话持久化读写 / 跨租户隔离 / 自动压缩 |
+| `demo_long_term_memory_stub.py` | 无（httpx.MockTransport） | 长期记忆：提炼写入 / 查询 / 同类别覆盖 / 跨租户隔离 |
+| `demo_cross_conversation_memory.py` | 真实 LiteLLM proxy | 001+003+004 组合：跨对话记住用户偏好 |
 
 ## demo_proxy.py：provider 对接真实模型
 
@@ -37,6 +40,39 @@ token，通用估值非 Azure 实际单价，仅影响 `cost` 展示准确性）
 以及一条控制台 GenAI span（含 `tenant_id=tenant-demo`）。
 
 **已验证**：2026-07-26 使用 Azure OpenAI（`azure-gpt4o-mini` 部署）运行通过。
+
+---
+
+## demo_cross_conversation_memory.py：跨对话记住偏好
+
+**目标**：组合 001（provider）+ 003（会话记忆）+ 004（长期记忆），验证"第一次
+对话中说的偏好，第二次全新对话里依然被记住并体现在回答中"。
+
+### 前置条件
+
+同 demo_proxy.py——需要一个正在运行的 LiteLLM proxy（见上方 demo_proxy.py
+或下方 demo_react_weather.py 的配置说明，三者共用同一个 proxy）。
+
+### 运行
+
+```powershell
+$env:MEMORY_MODEL = "azure-gpt4o-mini"   # 需与 litellm-config.yaml 的 model_name 一致
+.venv\Scripts\python examples\demo_cross_conversation_memory.py
+```
+
+### 预期输出
+
+1. 对话 1：用户说"喜欢简洁的回答"，LLM 回应，整轮存入会话记忆；
+2. 对话结束后从会话历史提炼出偏好，写入长期记忆库；
+3. 对话 2（全新 session，从未提及偏好）：先查询长期记忆并注入 system 提示，
+   再问一个新问题——回答应体现"简洁"这一此前对话中提炼出的偏好；
+4. 控制台打印每次 provider/memory/长期记忆操作的 span。
+
+### 常见问题排查
+
+同 demo_proxy.py 与 demo_react_weather.py（401/404/超时的原因基本一致，
+走的是同一个 proxy）。若"提炼出的记忆条目"为空，说明这一步 LLM 未能
+从对话中提炼出有效偏好——可尝试让对话 1 的用户发言更明确一些。
 
 ---
 
