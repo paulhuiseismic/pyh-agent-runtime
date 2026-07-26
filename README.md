@@ -50,7 +50,7 @@ token 与成本上限；所有 LLM 调用/tool 执行/消息进出发出 OTel Ge
 | 002 | [ReAct 引擎](specs/002-react-engine/spec.md) | 内核 | ✅ 已完成 |
 | 003 | [memory 压缩与上下文管理](specs/003-memory-compression/spec.md) | 内核 | ✅ 已完成 |
 | 004 | [长期记忆（跨会话 profile/fact 存储与查询）](specs/004-long-term-memory/spec.md) | 内核 | ✅ 已完成 |
-| 005 | [plugin tool 插件机制 + sandbox](specs/005-tool-plugin-sandbox/spec.md) | 内核 + 执行环境 | Specify 完成 |
+| 005 | [plugin tool 插件机制 + sandbox](specs/005-tool-plugin-sandbox/spec.md) | 内核 + 执行环境 | ✅ 已完成 |
 | 006 | MCP 客户端接入（stdio/HTTP 传输、工具发现、适配为 Tool Protocol） | 内核 | 待 specify |
 | 007 | 平台服务层 + web service（REST API）+ 运行调度 | 平台 | 待 specify |
 | 008 | CLI 入口（复用平台服务层） | 平台 | 待 specify |
