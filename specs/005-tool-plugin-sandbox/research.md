@@ -20,6 +20,15 @@
   不推荐）；`subprocess.Popen` 的 `start_new_session` 等 POSIX-only 参数配合
   外部 `ulimit` shell 命令包一层（引入 shell 解析，增加参数转义的攻击面）。
 
+**实现阶段修正**：运行器脚本内部最初用 `os.execvp()` 直接替换自身为目标命令，
+实测发现 Windows 上 `os.execv`/`os.execvp` 系列的退出码传播存在问题——
+目标进程以非零退出码结束时，父进程（等待运行器进程的 asyncio 一侧）
+观察到的却是 0。修正为运行器内部改用 `subprocess.run()` 执行目标命令并
+显式 `sys.exit(returncode)` 传播；资源限制仍对运行器自身生效，POSIX 上
+fork+exec 出的子进程会正常继承这些限制，不依赖 execvp 的"进程替换"语义。
+若目标进程被信号终止（负数 returncode），运行器对自身重发同一信号，
+保持父进程观察到的负数 returncode 语义与原设计一致。
+
 ## R2. 跨平台资源限制的能力边界（诚实声明，不伪造）
 
 - **Decision**: CPU 时间与内存上限只在 POSIX（Linux/macOS）上通过 `resource`

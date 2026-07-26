@@ -4,6 +4,17 @@ Tool Protocol 签名冻结于 001/002，本 feature 不得修改。
 """
 
 from kernel.tool.protocol import Tool
+from kernel.tool.registry import ToolRegistry
+from kernel.tool.sandbox import SandboxedTool
+from kernel.tool.sandbox_models import (
+    SandboxError,
+    SandboxInfraError,
+    SandboxLimits,
+    SandboxResourceExceededError,
+    SandboxStartupError,
+    SandboxTimeoutError,
+    SandboxToolExecutionError,
+)
 
 
 class EchoTool:
@@ -16,4 +27,16 @@ class EchoTool:
         return str(arguments)
 
 
-__all__ = ["Tool", "EchoTool"]
+__all__ = [
+    "Tool",
+    "EchoTool",
+    "ToolRegistry",
+    "SandboxedTool",
+    "SandboxLimits",
+    "SandboxError",
+    "SandboxInfraError",
+    "SandboxTimeoutError",
+    "SandboxResourceExceededError",
+    "SandboxStartupError",
+    "SandboxToolExecutionError",
+]
