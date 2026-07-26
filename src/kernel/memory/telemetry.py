@@ -47,3 +47,32 @@ def _safe(fn) -> None:
         fn()
     except Exception:
         logger.warning("遥测操作失败，调用继续", exc_info=True)
+
+
+@contextmanager
+def long_term_memory_span(operation: str, *, tenant_id: str):
+    """长期记忆操作 span（见 specs/004 data-model.md，research.md R5）。
+
+    extract 内部的 provider 调用需在本 span 上下文内发起，使 chat span
+    成为其子 span（同 002/003 模式）；query 无子 span。
+    """
+    try:
+        span_cm = _tracer.start_as_current_span(f"long_term_memory.{operation}")
+        span = span_cm.__enter__()
+        span.set_attribute("tenant_id", tenant_id)
+        span.set_attribute("operation", operation)
+    except Exception:
+        logger.warning("long_term_memory.%s span 创建失败，操作继续", operation, exc_info=True)
+        span_cm, span = None, None
+
+    try:
+        yield
+    except Exception as exc:
+        _safe(lambda: span.set_status(Status(StatusCode.ERROR, type(exc).__name__)))
+        _safe(lambda: span.set_attribute("error.type", type(exc).__name__))
+        raise
+    else:
+        _safe(lambda: span.set_status(Status(StatusCode.OK)))
+    finally:
+        if span_cm is not None:
+            _safe(lambda: span_cm.__exit__(None, None, None))
