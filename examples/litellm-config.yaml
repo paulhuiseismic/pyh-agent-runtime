@@ -1,0 +1,28 @@
+# LiteLLM proxy 最小配置示例（demo_react_weather.py 使用）。
+# 仅使用 LiteLLM 开源核心功能（路由），不使用 enterprise 目录功能（见 THIRD_PARTY.md）。
+#
+# 启动（Azure OpenAI）:
+#   docker run -p 4000:4000 \
+#     -v ./examples/litellm-config.yaml:/app/config.yaml \
+#     -e AZURE_API_KEY=<your-key> \
+#     -e AZURE_API_BASE=<your-endpoint, e.g. https://xxx.openai.azure.com> \
+#     -e AZURE_API_VERSION=<e.g. 2024-08-01-preview> \
+#     ghcr.io/berriai/litellm:main-stable --config /app/config.yaml
+#
+# model_name 是对外暴露的别名（demo 脚本用 WEATHER_MODEL 环境变量引用它），
+# model 字段的 azure/<deployment-name> 必须替换为你在 Azure 门户中实际的部署名
+# （不是模型名，如 gpt-4o，而是你为该部署自定义的 Deployment name）。
+
+model_list:
+  - model_name: azure-gpt4o-mini
+    litellm_params:
+      model: azure/gpt-4o-mini
+      api_key: os.environ/AZURE_API_KEY
+      api_base: os.environ/AZURE_API_BASE
+      api_version: os.environ/AZURE_API_VERSION
+
+# 如需改用纯 OpenAI（非 Azure），把上面 model_list 换成:
+#   - model_name: gpt-4o-mini
+#     litellm_params:
+#       model: gpt-4o-mini
+#       api_key: os.environ/OPENAI_API_KEY
