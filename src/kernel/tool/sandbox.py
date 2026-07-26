@@ -14,6 +14,7 @@ from kernel.tool.sandbox_models import (
     SandboxTimeoutError,
     SandboxToolExecutionError,
 )
+from kernel.tool.telemetry import tool_invoke_span
 
 _STARTUP_FAILURE_EXIT_CODE = 127
 _STDERR_SNIPPET_MAX_CHARS = 500
@@ -41,13 +42,28 @@ class SandboxedTool:
         self._limits = limits
 
     async def invoke(self, arguments: dict, *, tenant_id: str) -> str:
-        workdir = tempfile.mkdtemp(prefix="sandbox-")
-        try:
-            return await self._run(arguments, workdir)
-        finally:
-            shutil.rmtree(workdir, ignore_errors=True)
+        with tool_invoke_span(tenant_id=tenant_id, tool_name=self.name) as span:
+            workdir = tempfile.mkdtemp(prefix="sandbox-")
+            try:
+                result, result_type = await self._run(arguments, workdir)
+                span.set_result_type(result_type)
+                return result
+            except SandboxStartupError:
+                span.set_result_type("startup_failed")
+                raise
+            except SandboxTimeoutError:
+                span.set_result_type("timeout")
+                raise
+            except SandboxResourceExceededError:
+                span.set_result_type("resource_exceeded")
+                raise
+            except SandboxToolExecutionError:
+                span.set_result_type("nonzero_exit")
+                raise
+            finally:
+                shutil.rmtree(workdir, ignore_errors=True)
 
-    async def _run(self, arguments: dict, workdir: str) -> str:
+    async def _run(self, arguments: dict, workdir: str) -> tuple[str, str]:
         env = dict(os.environ)
         env["SANDBOX_MAX_CPU_SECONDS"] = str(self._limits.max_cpu_seconds)
         env["SANDBOX_MAX_MEMORY_BYTES"] = str(int(self._limits.max_memory_bytes))
@@ -92,4 +108,11 @@ class SandboxedTool:
                 exit_code=returncode, stderr_snippet=stderr_text[:_STDERR_SNIPPET_MAX_CHARS]
             )
 
-        return stdout.decode("utf-8", errors="replace")
+        return self._decode_with_truncation(stdout), "success"
+
+    def _decode_with_truncation(self, stdout: bytes) -> str:
+        max_bytes = self._limits.max_output_bytes
+        if len(stdout) <= max_bytes:
+            return stdout.decode("utf-8", errors="replace")
+        truncated = stdout[:max_bytes].decode("utf-8", errors="replace")
+        return f"{truncated}\n...[输出已截断，超过 {max_bytes} 字节上限]"
