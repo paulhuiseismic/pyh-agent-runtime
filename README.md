@@ -48,7 +48,7 @@ token 与成本上限；所有 LLM 调用/tool 执行/消息进出发出 OTel Ge
 |---|---------|-----|------|
 | 001 | [内核骨架 + provider](specs/001-kernel-provider/spec.md) | 内核 | ✅ 已完成 |
 | 002 | [ReAct 引擎](specs/002-react-engine/spec.md) | 内核 | ✅ 已完成 |
-| 003 | memory 压缩与上下文管理 | 内核 | 待 specify |
+| 003 | [memory 压缩与上下文管理](specs/003-memory-compression/spec.md) | 内核 | ✅ 已完成 |
 | 004 | plugin tool 插件机制 + sandbox | 内核 + 执行环境 | 待 specify |
 | 005 | 平台服务层 + web service（REST API）+ 运行调度 | 平台 | 待 specify |
 | 006 | CLI 入口（复用平台服务层） | 平台 | 待 specify |
@@ -60,5 +60,5 @@ token 与成本上限；所有 LLM 调用/tool 执行/消息进出发出 OTel Ge
 - 内核：Python 3.12 + httpx + OpenTelemetry SDK；测试 pytest（stub 化，零外部依赖）
 - 模型路由：LiteLLM proxy（独立部署，OpenAI 兼容 HTTP，MIT 核心功能）
 - 可观测：OTel GenAI 语义约定 → Langfuse（平台层接入）
-- 存储：内核只定义接口，实现由平台注入；MVP 默认 SQLite（WAL），
-  多实例部署时迁 PostgreSQL（决策记录待 003 确认）
+- 存储：内核只定义接口，实现由平台注入；MVP 默认 SQLite（WAL，
+  `aiosqlite` 异步驱动，003 已落地于 memory 模块），多实例部署时迁 PostgreSQL
