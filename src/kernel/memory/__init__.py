@@ -6,6 +6,8 @@ Memory Protocol 签名冻结于 001，本 feature 不得修改。
 from typing import Protocol, runtime_checkable
 
 from kernel.memory.compaction import compact_if_needed
+from kernel.memory.long_term import LongTermMemory
+from kernel.memory.long_term_models import ExtractionResult, MemoryEntry
 from kernel.memory.models import ContextBudget
 from kernel.memory.storage import SqliteStore
 from kernel.memory.telemetry import memory_operation_span
@@ -81,4 +83,12 @@ class NoopMemory:
         return None
 
 
-__all__ = ["Memory", "SqliteMemory", "NoopMemory", "ContextBudget"]
+__all__ = [
+    "Memory",
+    "SqliteMemory",
+    "NoopMemory",
+    "ContextBudget",
+    "LongTermMemory",
+    "MemoryEntry",
+    "ExtractionResult",
+]
