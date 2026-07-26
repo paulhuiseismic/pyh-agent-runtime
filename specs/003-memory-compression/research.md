@@ -39,6 +39,15 @@
   字典（需要额外的生命周期管理——何时清理不再使用的锁——引入不必要的
   复杂度；SQLite 事务已经提供更可靠的保证）。
 
+**实现阶段修正**：实测发现多个协程并发调用同一个共享 `aiosqlite.Connection`
+的 `execute()`（包括连接初始化时的 PRAGMA/建表语句）会打断"逻辑事务"边界，
+导致 aiosqlite 后台工作线程死锁（同一连接同一时刻只能有一个未提交事务，
+但并发协程会打断这一假设）。修正为：`SqliteStore` 内维护一个进程内
+`asyncio.Lock`，包裹连接初始化与每个写事务（`append_row`/`replace_rows`）
+的整个 BEGIN...COMMIT 范围。这不是引入分布式锁，而是让"同一连接同一时刻
+只处理一个事务"这条 SQLite 本身的约束在协程层面得到遵守；读操作
+（`load_rows`）不加锁，因 WAL 模式下读不阻塞写。
+
 ## R4. Token 预算与保留窗口的安全默认值
 
 - **Decision**: `ContextBudget(max_context_tokens=4000, keep_recent_messages=6)`。
