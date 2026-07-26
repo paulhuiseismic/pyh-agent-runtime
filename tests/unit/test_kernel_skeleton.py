@@ -25,8 +25,9 @@ from kernel.tool import EchoTool, Tool
 
 KERNEL_SRC = Path(__file__).resolve().parents[2] / "src" / "kernel"
 
-# 内核只允许 import 标准库、kernel 自身与这些第三方库（plan.md 技术上下文）
-ALLOWED_THIRD_PARTY = {"httpx", "opentelemetry"}
+# 内核只允许 import 标准库、kernel 自身与这些第三方库（plan.md 技术上下文，
+# aiosqlite 由 003 memory 模块引入，已登记 THIRD_PARTY.md）
+ALLOWED_THIRD_PARTY = {"httpx", "opentelemetry", "aiosqlite"}
 # 平台层/厂商 SDK 的禁止清单（零依赖断言的显式黑名单示例）
 FORBIDDEN_PREFIXES = ("platform_", "openai", "anthropic", "litellm", "langfuse")
 
