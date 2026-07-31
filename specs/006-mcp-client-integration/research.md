@@ -117,17 +117,44 @@ server（`tests/unit/tool/mcp_fixtures/stdio_server.py`），暴露 3 个测试�
 无法验证与真实 SDK 传输层的集成正确性，也无法复现 005 曾经踩过的"看似正确但
 在真实进程/平台差异下出错"的问题类型（如 005 的 Windows execvp bug）。
 
-## R7: 实现阶段验证事项（非最终结论，留待 Setup checkpoint 确认）
+## R7: 实现阶段验证事项（Setup checkpoint 已用真实 SDK 验证，替换此前的预期）
 
-以下细节依赖 `mcp` SDK 具体安装版本的实际 API 形状，本文档记录的是基于当前
-已知 SDK 设计模式的预期，Setup checkpoint 的第一个任务 MUST 先安装 SDK 并用
-最小 smoke test 验证以下假设，如有出入需回写本文档：
+Setup checkpoint 实际安装的是 `mcp` 2.0.0（PyPI 最新主版本，非本文档撰写时
+参考的旧版 API 形状），用 stdio 与 streamable-http 两种传输各跑通一次真实
+握手 + 发现 + 调用的 smoke test 后，确认以下与撰写时预期不同的实际 API 形状
+（同 005 execvp bug 的处理方式，实现阶段发现真实差异后回写本文档）：
 
-- `ClientSession.initialize()` 是否已经隐式发送/接收正确的能力协商字段（预期：
-  是，SDK 封装了握手细节，调用方只需 await 一次）
-- `list_tools()` 返回结构中每个工具的输入参数 schema 字段名（预期：
-  `inputSchema`，JSON Schema 格式）
-- `call_tool()` 返回结构中标识业务失败的字段（预期：`isError: bool` +
-  `content` 列表）
-- stdio 与 streamable-http 两种 `*_client()` 的返回值形状是否一致（预期：
-  均为 async context manager，yield 一对可直接传给 `ClientSession` 的流对象）
+- **高层 server 类不叫 `FastMCP`**：本版本中位于
+  `mcp.server.mcpserver.MCPServer`（`from mcp.server.mcpserver import
+  MCPServer`），构造与 `tool()` 装饰器用法与预期的 `FastMCP` 一致，仅类名与
+  导入路径不同；测试用 server（`tests/unit/tool/mcp_fixtures/test_server.py`/
+  `empty_server.py`）已改用此导入
+- **HTTP 传输的运行方式**：不存在 `mcp.settings.host/port` 可写属性；启动
+  HTTP 模式须显式调用 `await server.run_streamable_http_async(host=...,
+  port=...)`（`run(transport="streamable-http", **kwargs)` 内部就是转发到
+  这个方法），`conftest.py` 的 `mcp_http_server` fixture 按此调用
+- **HTTP 传输客户端函数名**：是 `mcp.client.streamable_http.
+  streamable_http_client`（下划线分隔），不是预期的 `streamablehttp_client`
+- **`ClientSession` 返回对象字段均为 snake_case**（pydantic 模型属性），
+  非驼峰：`InitializeResult.server_info`（非 `serverInfo`）、
+  `Tool.input_schema`（非 `inputSchema`）、`CallToolResult.is_error`
+  （非 `isError`）
+- **stdio 与 streamable-http 两种 `*_client()` 返回值形状一致**：均为
+  async context manager，yield 一个可解包为 `(read_stream, write_stream)`
+  的二元结构（`len(streams) == 2`），验证了 research.md R2 的"传输无关"设计
+  假设成立，`McpServerConnection.connect()` 可用同一段"解包 (read, write) +
+  构造 ClientSession"逻辑处理两种传输
+- **连接失败的异常形状因传输而异**：stdio 目标命令不存在时，
+  `stdio_client()` 直接抛出标准库 `FileNotFoundError`；HTTP 地址不可达时，
+  `streamable_http_client()` 抛出 anyio `ExceptionGroup`（包裹底层
+  `httpx2` 连接异常）。两者类型不同，`McpServerConnection.connect()` 的
+  连接失败处理 MUST 用 `except Exception`（而非某个具体异常类型）统一捕获
+  并转换为 `McpConnectionError(detail=str(e))`，不依赖判断具体异常类型
+- **业务失败时的 `content`**：`call_tool()` 对抛异常的工具函数自动返回
+  `is_error=True`，`content` 中包含形如 `Error executing tool {name}:
+  {原始异常信息}` 的 `TextContent`，`McpToolExecutionError` 的 `detail`
+  取该文本内容即可，无需额外包装
+- **工具返回值序列化**：工具函数返回 `dict` 时，SDK 自动将其序列化为
+  JSON 文本包装进 `TextContent`（`text` 字段为 JSON 字符串），
+  `McpServerConnection.call_tool()` 的成功路径直接取 `content[0].text`
+  作为返回字符串即可，无需自行 `json.dumps`

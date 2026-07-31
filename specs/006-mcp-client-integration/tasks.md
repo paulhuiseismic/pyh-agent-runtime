@@ -34,18 +34,18 @@ US2（HTTP 传输）在 US1 建立的 `McpServerConnection` 上补一个传输�
 
 **Purpose**: 引入新依赖、登记 license、准备测试用 MCP server fixture
 
-- [ ] T001 在 pyproject.toml 的 `dependencies` 中新增 `mcp`（官方 Model Context
+- [X] T001 在 pyproject.toml 的 `dependencies` 中新增 `mcp`（官方 Model Context
       Protocol Python SDK），并在 THIRD_PARTY.md 追加一行登记（组件名/MIT
       license/Python 库依赖/无特殊约束），随后执行 `pip install -e ".[dev]"`
       验证安装成功、`python -c "import mcp"` 可正常导入（research.md R1）
-- [ ] T002 [P] 创建测试用 MCP server tests/unit/tool/mcp_fixtures/test_server.py：
+- [X] T002 [P] 创建测试用 MCP server tests/unit/tool/mcp_fixtures/test_server.py：
       基于 `mcp.server.fastmcp.FastMCP` 定义 3 个工具——`echo`（原样返回入参
       字典）、`slow`（`await asyncio.sleep(seconds)`，seconds 由入参指定，用于
       触发调用超时）、`fail`（显式返回 `isError=True` 的结果，用于触发业务
       失败）；`if __name__ == "__main__"` 分支以 `mcp.run(transport="stdio")`
       启动，供 stdio 子进程测试直接执行；模块级导出 `mcp` 实例本身，供 HTTP
       测试在进程内以 `transport="streamable-http"` 启动
-- [ ] T003 [P] 创建空工具列表测试用 server
+- [X] T003 [P] 创建空工具列表测试用 server
       tests/unit/tool/mcp_fixtures/empty_server.py：`FastMCP` 实例不注册
       任何工具，`if __name__ == "__main__"` 以 `mcp.run(transport="stdio")`
       启动（覆盖 spec Edge Cases 第 3 条"工具列表为空"场景）
