@@ -96,7 +96,7 @@ US2（HTTP 传输）在 US1 建立的 `McpServerConnection` 上补一个传输�
 **Independent Test**: 用 T002 的测试用 stdio server 驱动端到端流程——连接成功
 → 工具出现在注册表 → 调用 `echo` 工具返回预期结果，全程不依赖 US2/US3
 
-- [ ] T008 [US1] 实现连接编排 src/kernel/tool/mcp_client.py：`McpServerConnection`
+- [X] T008 [US1] 实现连接编排 src/kernel/tool/mcp_client.py：`McpServerConnection`
       类——`__init__(config)`，`state` 属性（初始 `NOT_CONNECTED`）；`connect()`
       （stdio 分支：`mcp.client.stdio.stdio_client(...)` 建立读写流 +
       `ClientSession.initialize()`，用
@@ -106,38 +106,38 @@ US2（HTTP 传输）在 US1 建立的 `McpServerConnection` 上补一个传输�
       Edge Case 第 5 条）：`state == CONNECTED` 时重复调用直接返回（no-op，
       不重新握手）；`state` 为 `CONNECT_FAILED`/`DISCONNECTED` 时重复调用抛
       `McpConnectionError`（不支持原地重试）
-- [ ] T009 [US1] 在 src/kernel/tool/mcp_client.py 补全 `discover_tools()`：
+- [X] T009 [US1] 在 src/kernel/tool/mcp_client.py 补全 `discover_tools()`：
       非 `CONNECTED` 状态（含从未连接的 `NOT_CONNECTED`）抛
       `McpDisconnectedError`；否则
       `asyncio.wait_for(session.list_tools(), timeout=
       discover_timeout_seconds)`，超时抛 `McpTimeoutError(stage="discover")`，
       成功后把每个工具转换为 `DiscoveredMcpTool` 列表返回
-- [ ] T010 [US1] 在 src/kernel/tool/mcp_client.py 补全 `call_tool(name,
+- [X] T010 [US1] 在 src/kernel/tool/mcp_client.py 补全 `call_tool(name,
       arguments)`：`asyncio.wait_for(session.call_tool(...), timeout=
       call_timeout_seconds)` 包裹；超时抛 `McpTimeoutError(stage="call")`；
       连接相关异常/非 `CONNECTED` 状态（含从未连接的 `NOT_CONNECTED`）抛
       `McpDisconnectedError`；返回结果标记 `isError` 时抛
       `McpToolExecutionError(tool_name, detail)`；否则把结果内容转换为
       字符串返回
-- [ ] T011 [US1] 在 src/kernel/tool/mcp_client.py 补全 `disconnect()`：关闭
+- [X] T011 [US1] 在 src/kernel/tool/mcp_client.py 补全 `disconnect()`：关闭
       底层传输、`state` 置 `DISCONNECTED`，重复调用/对从未连接成功的实例
       调用均不抛异常（幂等，data-model.md）；span 埋点在 T026 补全
-- [ ] T012 [US1] 实现工具适配 src/kernel/tool/mcp_tool.py：`McpTool` 类，
+- [X] T012 [US1] 实现工具适配 src/kernel/tool/mcp_tool.py：`McpTool` 类，
       实现 001/002 冻结的 `Tool` Protocol，`invoke(arguments, tenant_id)`
       内部转调 `connection.call_tool(self.name, arguments)`（遥测在 Phase 6
       补全，此处先保证功能路径正确）
-- [ ] T013 [US1] 在 src/kernel/tool/mcp_tool.py 实现
+- [X] T013 [US1] 在 src/kernel/tool/mcp_tool.py 实现
       `register_mcp_tools(connection, registry)`：调用
       `connection.discover_tools()`，逐个构造 `McpTool` 并调用
       `registry.register(...)`；捕获重名导致的 `InvalidRequestError` 记入
       `RegisterMcpToolsResult.skipped`，不中断后续工具注册，返回
       `registered`/`skipped` 两个列表（research.md R5，FR-006/FR-009）
-- [ ] T014 [US1] 包级导出 src/kernel/tool/__init__.py 追加：按
+- [X] T014 [US1] 包级导出 src/kernel/tool/__init__.py 追加：按
       contracts/mcp-tool-adapter-api.md 导出 `McpServerConfig`、
       `McpConnectionState`、`DiscoveredMcpTool`、`McpServerConnection`、
       `McpTool`、`register_mcp_tools`、`RegisterMcpToolsResult`、
       `McpError` 及其四个子类（保留 005 已有导出不变）
-- [ ] T015 [P] [US1] stdio 握手与发现单元测试
+- [X] T015 [P] [US1] stdio 握手与发现单元测试
       tests/unit/tool/test_mcp_connect_discover.py：`connect()` 对 T002 的
       测试用 server 握手成功、`state` 转为 `CONNECTED`（验收场景 US1-1）；
       `discover_tools()` 返回 3 个测试工具且名称/描述可读（验收场景 US1-2）；
@@ -145,12 +145,12 @@ US2（HTTP 传输）在 US1 建立的 `McpServerConnection` 上补一个传输�
       空列表且不抛异常（spec Edge Cases 第 3 条，C3 修正项）；已 `CONNECTED`
       状态下重复调用 `connect()` 直接返回、不重新握手（spec Edge Cases 第
       5 条，C4 修正项）
-- [ ] T016 [P] [US1] 工具调用与 ReactEngine 兼容性单元测试
+- [X] T016 [P] [US1] 工具调用与 ReactEngine 兼容性单元测试
       tests/unit/tool/test_mcp_tool_invoke.py：`McpTool.invoke()` 调用
       `echo` 工具返回透传参数（验收场景 US1-3）；构造的 `McpTool` 可直接
       放入 002 `ReactEngine(tools=...)` 的字典参数而无需任何改动（对应
       contracts 行为契约 3）
-- [ ] T017 [P] [US1] 注册冲突单元测试
+- [X] T017 [P] [US1] 注册冲突单元测试
       tests/unit/tool/test_mcp_registry_conflict.py：`register_mcp_tools()`
       对一个已存在同名工具的 `ToolRegistry` 执行时，冲突工具被记入
       `skipped`、原工具不变，其余不冲突的工具正常进入 `registered`

@@ -3,6 +3,16 @@
 Tool Protocol 签名冻结于 001/002，本 feature 不得修改。
 """
 
+from kernel.tool.mcp_client import McpServerConnection
+from kernel.tool.mcp_errors import (
+    McpConnectionError,
+    McpDisconnectedError,
+    McpError,
+    McpTimeoutError,
+    McpToolExecutionError,
+)
+from kernel.tool.mcp_models import DiscoveredMcpTool, McpConnectionState, McpServerConfig
+from kernel.tool.mcp_tool import McpTool, RegisterMcpToolsResult, register_mcp_tools
 from kernel.tool.protocol import Tool
 from kernel.tool.registry import ToolRegistry
 from kernel.tool.sandbox import SandboxedTool
@@ -39,4 +49,16 @@ __all__ = [
     "SandboxResourceExceededError",
     "SandboxStartupError",
     "SandboxToolExecutionError",
+    "McpServerConfig",
+    "McpConnectionState",
+    "DiscoveredMcpTool",
+    "McpServerConnection",
+    "McpTool",
+    "register_mcp_tools",
+    "RegisterMcpToolsResult",
+    "McpError",
+    "McpConnectionError",
+    "McpTimeoutError",
+    "McpDisconnectedError",
+    "McpToolExecutionError",
 ]
