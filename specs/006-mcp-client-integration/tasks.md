@@ -168,17 +168,17 @@ US2（HTTP 传输）在 US1 建立的 `McpServerConnection` 上补一个传输�
 **Independent Test**: 用同一份 test_server.py 以 `streamable-http` 模式在测试
 内启动，重复 US1 的连接/发现/调用验证，断言结果与 stdio 场景等价
 
-- [ ] T018 [US2] 在 src/kernel/tool/mcp_client.py 的 `connect()` 补充 HTTP
+- [X] T018 [US2] 在 src/kernel/tool/mcp_client.py 的 `connect()` 补充 HTTP
       分支：`transport == "http"` 时使用
       `mcp.client.streamable_http.streamablehttp_client(url, headers=...)`
       建立读写流，之后复用与 stdio 分支相同的 `ClientSession.initialize()`
       与超时包裹逻辑（research.md R2）
-- [ ] T019 [P] [US2] 扩展 tests/unit/tool/conftest.py：新增
+- [X] T019 [P] [US2] 扩展 tests/unit/tool/conftest.py：新增
       `mcp_http_server` fixture——在测试内以后台 `asyncio.Task` 启动
       T002 的 `mcp` 实例（`transport="streamable-http"`，绑定到已分配的
       空闲本地端口），yield 对应的 `McpServerConfig(transport="http",
       url=...)`，测试结束后取消后台任务
-- [ ] T020 [P] [US2] HTTP 传输单元测试
+- [X] T020 [P] [US2] HTTP 传输单元测试
       tests/unit/tool/test_mcp_http_transport.py：使用 `mcp_http_server`
       fixture 重复 US1 的握手/发现/`echo` 调用验证，断言行为与 stdio 场景
       完全等价（验收场景 US2-1/2）
