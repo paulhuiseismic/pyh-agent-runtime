@@ -158,3 +158,37 @@ Setup checkpoint 实际安装的是 `mcp` 2.0.0（PyPI 最新主版本，非本�
   JSON 文本包装进 `TextContent`（`text` 字段为 JSON 字符串），
   `McpServerConnection.call_tool()` 的成功路径直接取 `content[0].text`
   作为返回字符串即可，无需自行 `json.dumps`
+
+## R8: 实现阶段发现的真实 bug——跨 Task 的 anyio 取消作用域冲突
+
+**问题**：US3 阶段编写"HTTP 地址不可达"的失败隔离测试时，`connect()`
+稳定复现 `RuntimeError: Attempted to exit cancel scope in a different task
+than it was entered in`，而不是预期的 `McpConnectionError`。
+
+**根因**：最初实现用 `asyncio.wait_for(_do_connect(), timeout=...)` 包裹整个
+"建立传输 + 建 `ClientSession` + 握手"过程，其中 `_do_connect()` 内部通过
+`AsyncExitStack.enter_async_context(...)` 逐个进入 `stdio_client`/
+`streamable_http_client`/`ClientSession` 这些基于 anyio 的上下文管理器。
+`asyncio.wait_for` 会把被等待的协程包装为一个独立的 `asyncio.Task` 来运行——
+于是 `enter_async_context` 的调用实际发生在这个"临时任务"里，而失败时的
+`stack.aclose()` 却是从 `connect()` 自身所在的（调用方）任务里发起的。
+anyio 的取消作用域（cancel scope）与其创建时所在的 Task 绑定，跨 Task 调用
+`__aexit__` 必然报错——这与 005 的 Windows execvp 退出码丢失 bug同属"标准库/
+第三方库对 Task 边界隐含假设，在特定调用模式下才会暴露"的问题类型。
+
+**修复**：`connect()` 改为不再用 `wait_for` 包裹整个建连过程，而是在
+`connect()` 自身所在的 Task 内直接 `await stack.enter_async_context(...)`
+（不经过任何任务包装）；只对其中真正的"纯协程调用"（`session.initialize()`，
+不涉及任何上下文管理器的进入/退出）单独用 `asyncio.wait_for` 包裹超时。这样
+`AsyncExitStack` 的进入与（无论成功后 `disconnect()` 还是失败时的
+`stack.aclose()`）退出，全程都发生在同一个 Task 里。
+
+**附带发现**：修复上述问题后，"HTTP 地址不可达"场景在 `streamable_http_client`
+内部仍会在其自身的 anyio 任务组清理阶段抛出同类 `RuntimeError`——这是该 SDK
+版本（`mcp` 2.0.0）自身在"连接在其内部任务组产出 (yield) 之前就失败"这一
+路径下的实现问题，不是我们代码可以从外部规避的。**最终方案**：在进入
+`streamable_http_client` 之前，先用一次独立的 `asyncio.open_connection(host,
+port)`（不涉及任何 anyio 任务组）做 TCP 可达性探测，探测失败直接抛
+`McpConnectionError`，探测成功才进入 `streamable_http_client`——把"连接被拒绝"
+这类失败挡在触发该 SDK 内部 bug 之前。此发现与规避方案已在
+`src/kernel/tool/mcp_client.py` 的 `_preflight_tcp_check()` 中以注释形式记录。
