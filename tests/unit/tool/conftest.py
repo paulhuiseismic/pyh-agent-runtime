@@ -103,7 +103,7 @@ def mcp_unreachable_http_config() -> McpServerConfig:
     return McpServerConfig(
         transport="http",
         url=f"http://127.0.0.1:{_free_port()}/mcp",
-        connect_timeout_seconds=2.0,
+        connect_timeout_seconds=5.0,
     )
 
 

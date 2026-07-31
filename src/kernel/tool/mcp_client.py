@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import AsyncExitStack
+from urllib.parse import urlsplit
 
 import httpx2
 from mcp import ClientSession
@@ -13,6 +14,25 @@ from kernel.tool.mcp_errors import (
     McpToolExecutionError,
 )
 from kernel.tool.mcp_models import DiscoveredMcpTool, McpConnectionState, McpServerConfig
+
+
+async def _preflight_tcp_check(url: str, timeout_seconds: float) -> None:
+    """在进入 streamable_http_client 之前先探测 TCP 可达性。
+
+    直接把"连接被拒绝/不可达"交给 streamable_http_client 内部的
+    anyio 任务组处理，在该 SDK 版本下会在清理阶段触发
+    "exit cancel scope in a different task" 的内部错误（连接建立失败发生在
+    其内部任务组尚未 yield 时）。用一次独立的、不涉及任务组的 TCP 探测
+    提前捕获同类失败，避免触发该问题（research.md R7）。
+    """
+    parsed = urlsplit(url)
+    host = parsed.hostname or "127.0.0.1"
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    reader, writer = await asyncio.wait_for(
+        asyncio.open_connection(host, port), timeout=timeout_seconds
+    )
+    writer.close()
+    await writer.wait_closed()
 
 
 class McpServerConnection:
@@ -38,9 +58,17 @@ class McpServerConnection:
                 "create a new McpServerConnection instance"
             )
 
+        # AsyncExitStack entries and their later exit (disconnect()/failure
+        # cleanup) must happen in the same asyncio Task — anyio's cancel
+        # scopes (used internally by stdio_client/streamable_http_client/
+        # ClientSession) are task-bound. Wrapping the whole entry sequence
+        # in asyncio.wait_for would run it in a separate spawned Task,
+        # causing "exit cancel scope in a different task" errors when
+        # cleanup later runs in the caller's task (research.md R7 finding).
+        # Only the single non-context-manager await (session.initialize())
+        # is wrapped in a timeout.
         stack = AsyncExitStack()
-
-        async def _do_connect() -> ClientSession:
+        try:
             if self._config.transport == "stdio":
                 params = StdioServerParameters(
                     command=self._config.command[0],
@@ -48,22 +76,22 @@ class McpServerConnection:
                 )
                 read, write = await stack.enter_async_context(stdio_client(params))
             else:
-                http_client = None
-                if self._config.headers:
-                    http_client = httpx2.AsyncClient(headers=self._config.headers)
-                    await stack.enter_async_context(http_client)
+                await _preflight_tcp_check(
+                    self._config.url, self._config.connect_timeout_seconds
+                )
+                http_client = httpx2.AsyncClient(
+                    headers=self._config.headers,
+                    timeout=self._config.connect_timeout_seconds,
+                )
+                await stack.enter_async_context(http_client)
                 streams = await stack.enter_async_context(
                     streamable_http_client(self._config.url, http_client=http_client)
                 )
                 read, write = streams[0], streams[1]
 
             session = await stack.enter_async_context(ClientSession(read, write))
-            await session.initialize()
-            return session
-
-        try:
-            self._session = await asyncio.wait_for(
-                _do_connect(), timeout=self._config.connect_timeout_seconds
+            await asyncio.wait_for(
+                session.initialize(), timeout=self._config.connect_timeout_seconds
             )
         except asyncio.TimeoutError:
             await stack.aclose()
@@ -74,6 +102,7 @@ class McpServerConnection:
             self._state = McpConnectionState.CONNECT_FAILED
             raise McpConnectionError(str(exc)) from exc
 
+        self._session = session
         self._exit_stack = stack
         self._state = McpConnectionState.CONNECTED
 

@@ -196,22 +196,22 @@ US2（HTTP 传输）在 US1 建立的 `McpServerConnection` 上补一个传输�
 超时（调用超时）、`disconnect()` 后再调用（中途断连）驱动，同时验证同一
 `ToolRegistry` 中另一个正常连接的工具不受影响
 
-- [ ] T021 [US3] 在 src/kernel/tool/mcp_client.py 的 `connect()` 补全连接
+- [X] T021 [US3] 在 src/kernel/tool/mcp_client.py 的 `connect()` 补全连接
       失败路径：stdio 目标命令不存在/无法启动、HTTP 地址不可达时统一抛
       `McpConnectionError(detail)`（区别于 T008 已实现的握手超时），
       `state` 置 `CONNECT_FAILED`（FR-008/FR-010，data-model.md 状态机）
-- [ ] T022 [US3] 在 src/kernel/tool/mcp_client.py 的 `discover_tools()`/
+- [X] T022 [US3] 在 src/kernel/tool/mcp_client.py 的 `discover_tools()`/
       `call_tool()` 补全连接中途丢失的识别：已 `CONNECTED` 之后，若底层
       传输报告连接已关闭（如 stdio 子进程已退出、HTTP 连接被重置），统一
       抛 `McpDisconnectedError` 并将 `state` 转为 `DISCONNECTED`（FR-008，
       与 T010 已实现的 `isError` 业务失败路径互不覆盖）
-- [ ] T023 [US3] 在 src/kernel/tool/mcp_tool.py 确认
+- [X] T023 [US3] 在 src/kernel/tool/mcp_tool.py 确认
       `register_mcp_tools()`/`McpTool.invoke()` 对单个连接失败的隔离性：
       一个 `McpServerConnection` 的失败（含 T021/T022 的各类异常）仅影响
       该连接产生的 `McpTool` 调用，不触碰 `ToolRegistry` 中其他条目
       （FR-009，若已由 T013/T012 的实现天然满足，此任务为补充针对性单测
       而非改动实现）
-- [ ] T024 [P] [US3] 失败隔离单元测试
+- [X] T024 [P] [US3] 失败隔离单元测试
       tests/unit/tool/test_mcp_failure_isolation.py：连接一个不存在的
       stdio 命令 / 未监听的本地端口抛 `McpConnectionError`（验收场景
       US3-1）；对已连接的 server 调用配置了短 `call_timeout_seconds` 的
