@@ -63,23 +63,23 @@ US2（HTTP 传输）在 US1 建立的 `McpServerConnection` 上补一个传输�
 
 **⚠️ CRITICAL**: 本阶段完成前任何用户故事不能开工
 
-- [ ] T004 实现配置与枚举 src/kernel/tool/mcp_models.py：frozen dataclass
+- [X] T004 实现配置与枚举 src/kernel/tool/mcp_models.py：frozen dataclass
       `McpServerConfig`（transport/command/url/headers/connect_timeout_seconds=10.0/
       discover_timeout_seconds=10.0/call_timeout_seconds=30.0，`__post_init__`
       校验 transport 与 command/url 匹配、超时字段均为正数，非法时抛
       `InvalidRequestError`，复用 001 异常）；`McpConnectionState` 枚举
       （NOT_CONNECTED/CONNECTED/CONNECT_FAILED/DISCONNECTED）；
       `DiscoveredMcpTool`（name/description/input_schema，data-model.md）
-- [ ] T005 [P] 实现异常层级 src/kernel/tool/mcp_errors.py：`McpError` 基类，
+- [X] T005 [P] 实现异常层级 src/kernel/tool/mcp_errors.py：`McpError` 基类，
       `McpConnectionError`（detail）、`McpTimeoutError`（stage/timeout_seconds）、
       `McpDisconnectedError`（detail）、`McpToolExecutionError`（tool_name/detail）
       （research.md R4，data-model.md）
-- [ ] T006 [P] 扩展测试公共设施 tests/unit/tool/conftest.py：`mcp_stdio_command`
+- [X] T006 [P] 扩展测试公共设施 tests/unit/tool/conftest.py：`mcp_stdio_command`
       fixture（拼接 `sys.executable` + `mcp_fixtures/test_server.py` 绝对路径）、
       `mcp_stdio_config`/`mcp_http_config` fixture（构造对应 `McpServerConfig`，
       测试用短超时加速失败场景）、空闲本地端口分配 helper（供 HTTP 测试启停
       后台 server 使用）
-- [ ] T007 [P] `McpServerConfig` 与异常层级单元测试
+- [X] T007 [P] `McpServerConfig` 与异常层级单元测试
       tests/unit/tool/test_mcp_models.py：默认值正确；transport 与
       command/url 不匹配、任一超时字段 ≤0 时抛 `InvalidRequestError`；
       各异常类的诊断字段可正确构造与读取
