@@ -192,3 +192,35 @@ port)`（不涉及任何 anyio 任务组）做 TCP 可达性探测，探测失�
 `McpConnectionError`，探测成功才进入 `streamable_http_client`——把"连接被拒绝"
 这类失败挡在触发该 SDK 内部 bug 之前。此发现与规避方案已在
 `src/kernel/tool/mcp_client.py` 的 `_preflight_tcp_check()` 中以注释形式记录。
+
+## R9: 实现阶段发现的真实约束——同一 Task 内多个连接必须按 LIFO 顺序 disconnect()
+
+**问题**：编写 `examples/demo_mcp_client.py`（同一个 `main()` 协程内先后
+建立一个 stdio 连接和一个 HTTP 连接，用于演示"断开一个连接不影响另一个"）时，
+先 `disconnect()` **先建立**的那个连接（stdio），复现
+`RuntimeError: Attempted to exit a cancel scope that isn't the current
+tasks's current cancel scope`。用最小复现脚本进一步验证：两个
+`McpServerConnection`（哪怕都是同一种 stdio 传输）在同一个 asyncio Task 内
+建立后，若按**非**"后建立先断开"的顺序调用 `disconnect()`，稳定复现同一个
+`RuntimeError`；按 LIFO 顺序（后连接的先断开）则完全正常。
+
+**根因**：`stdio_client`/`streamable_http_client`/`ClientSession` 内部各自
+用 `anyio.create_task_group()` 开辟一个取消作用域（cancel scope）。同一个
+asyncio Task 上的取消作用域按**严格栈序（LIFO）**组织——若同一任务内先后
+`enter_async_context` 了连接 A 的作用域、再进入连接 B 的作用域，则必须先
+退出 B、再退出 A；若先退出 A（此时 B 的作用域仍"晚于" A 存在于该任务的
+作用域栈中），anyio 会检测到栈序被打破并报错。这不是我们代码的 bug，而是
+anyio 取消作用域模型的固有约束——只是在"同一任务内维护多个长生命周期的
+MCP 连接"这一使用模式下才会暴露（与 R8 同属实现阶段才发现的真实约束）。
+
+**应对**：不在 `McpServerConnection`/`register_mcp_tools` 层面强制单例或
+排队限制（那会过度限制上层灵活性，也不是 spec 要求的行为），而是把这一约束
+显式记录为使用须知：**在同一个 asyncio Task 内维护多个 `McpServerConnection`
+时，调用方 MUST 按与 `connect()` 相反的顺序（后连接的先断开）调用
+`disconnect()`**；`examples/demo_mcp_client.py` 已按此顺序实现并在代码注释
+中说明。spec FR-009（"单个连接失败不影响其他工具"）本身不受此约束影响——
+该约束只出现在显式 `disconnect()` 的收尾阶段，不出现在连接失败、调用失败、
+或调用中途断连的路径中（这些路径均已被 US3 的测试覆盖且不涉及跨连接的
+LIFO 冲突）。若未来的平台层（007+）需要在同一任务内管理多个 MCP 连接的
+生命周期，MUST 遵循此约束，或改为每个连接使用独立的 asyncio Task
+（不同 Task 各自维护独立的取消作用域栈，天然不受此限制）。

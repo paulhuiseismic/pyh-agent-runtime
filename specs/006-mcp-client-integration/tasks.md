@@ -251,18 +251,18 @@ US2（HTTP 传输）在 US1 建立的 `McpServerConnection` 上补一个传输�
       （FR-010，C1 修正项）；`McpTool.invoke()` 产生的 `tool.invoke` span
       属性与 result_type 取值可区分；复用 005 的 `BrokenTracer` monkeypatch
       模式验证遥测失败不影响调用本身
-- [ ] T028 [P] 创建演示脚本 examples/demo_mcp_client.py：按
+- [X] T028 [P] 创建演示脚本 examples/demo_mcp_client.py：按
       quickstart.md 第 2 节的预期输出，依次演示 stdio 连接发现调用、
       HTTP 连接发现调用（等价性）、调用超时、业务失败、主动断开后失败
       隔离，并打印每次连接/调用的 span
-- [ ] T029 按 quickstart.md 全流程验证：`pytest tests/unit/tool -v -k mcp`
+- [X] T029 按 quickstart.md 全流程验证：`pytest tests/unit/tool -v -k mcp`
       全绿 → demo 脚本输出符合预期（SC-001/SC-003/SC-004）→ 计时确认
       15 分钟内完成，修复发现的问题；如 research.md R7 中的 SDK API 假设
       与实际不符，回写 research.md 记录差异（同 005 execvp bug 的处理方式）；
       SC-002（20 个工具数秒内完成发现）为参考性能预期，不设独立基准测试
       任务，同 001-005 对性能目标的既定处理方式（C2 修正项，仅需在此确认
       一致性，不要求新增测试）
-- [ ] T030 更新 README.md roadmap：006 状态改为"已完成"
+- [X] T030 更新 README.md roadmap：006 状态改为"已完成"
 
 ---
 

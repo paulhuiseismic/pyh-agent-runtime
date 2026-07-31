@@ -12,6 +12,8 @@
 | `demo_memory_stub.py` | 无（httpx.MockTransport） | memory：会话持久化读写 / 跨租户隔离 / 自动压缩 |
 | `demo_long_term_memory_stub.py` | 无（httpx.MockTransport） | 长期记忆：提炼写入 / 查询 / 同类别覆盖 / 跨租户隔离 |
 | `demo_cross_conversation_memory.py` | 真实 LiteLLM proxy | 001+003+004 组合：跨对话记住用户偏好 |
+| `demo_tool_sandbox.py` | 无（本地子进程） | tool：注册中心 / 沙箱执行成功/超时/非零退出码 |
+| `demo_mcp_client.py` | 无（测试用 MCP server 由脚本自建） | MCP 客户端：stdio/HTTP 连接发现调用等价、超时、业务失败、断开后失败隔离 |
 
 ## demo_proxy.py：provider 对接真实模型
 

@@ -72,3 +72,15 @@ async def test_failed_connection_does_not_affect_other_tools(
     assert invoke_result == "done"
 
     await good_connection.disconnect(tenant_id="tenant-a")
+
+
+async def test_multiple_connections_must_disconnect_in_lifo_order(mcp_stdio_config):
+    """research.md R9: anyio 取消作用域按 Task 内 LIFO 顺序组织，同一任务内
+    先连接的实例 MUST 在后连接的实例断开之后才断开。"""
+    first = McpServerConnection(mcp_stdio_config)
+    second = McpServerConnection(mcp_stdio_config)
+    await first.connect(tenant_id="tenant-a")
+    await second.connect(tenant_id="tenant-a")
+
+    await second.disconnect(tenant_id="tenant-a")
+    await first.disconnect(tenant_id="tenant-a")

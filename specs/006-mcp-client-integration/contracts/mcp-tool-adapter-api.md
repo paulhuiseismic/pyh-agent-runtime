@@ -58,6 +58,12 @@ from kernel.tool import (
 8. `McpServerConnection.disconnect()` MUST 幂等（对已断开或从未连接成功的
    实例重复调用不抛异常）；断开后该连接产生的所有 `McpTool` 实例的
    `invoke()` MUST 抛 `McpDisconnectedError`。
+9. 若调用方在**同一个 asyncio Task** 内维护多个 `McpServerConnection`
+   实例，调用方 MUST 按与 `connect()` 相反的顺序（后连接的先断开）调用
+   `disconnect()`——这是底层 anyio 取消作用域按 Task 栈序组织的固有约束
+   （research.md R9），不遵循此顺序会在 `disconnect()` 时抛出与本 feature
+   无关的 anyio 内部 `RuntimeError`。在不同 asyncio Task 中各自维护的连接
+   不受此约束。
 
 ## 兼容性承诺
 
