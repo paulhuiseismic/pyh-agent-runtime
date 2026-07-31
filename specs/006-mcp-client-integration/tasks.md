@@ -231,12 +231,12 @@ US2（HTTP 传输）在 US1 建立的 `McpServerConnection` 上补一个传输�
 
 **Purpose**: 遥测、演示脚本、文档收尾与最终验证
 
-- [ ] T025 [P] 扩展遥测 src/kernel/tool/telemetry.py：新增
+- [X] T025 [P] 扩展遥测 src/kernel/tool/telemetry.py：新增
       `mcp_connection_span(tenant_id, transport)` 上下文管理器（span
       name 由调用方传入，供 `connect()` 传 `"mcp.connect"`、`disconnect()`
       传 `"mcp.disconnect"` 复用同一实现），复用 005 已建立的 tracer 与
       "遥测异常 try/except 不影响调用"约定（data-model.md span 契约）
-- [ ] T026 集成遥测：在 src/kernel/tool/mcp_client.py 的 `connect()` 中
+- [X] T026 集成遥测：在 src/kernel/tool/mcp_client.py 的 `connect()` 中
       用 `mcp_connection_span(..., span_name="mcp.connect")` 包裹并设置
       `result`（success/timeout/connection_error）；在 `disconnect()` 中
       用 `mcp_connection_span(..., span_name="mcp.disconnect")` 包裹（仅在
@@ -245,7 +245,7 @@ US2（HTTP 传输）在 US1 建立的 `McpServerConnection` 上补一个传输�
       src/kernel/tool/mcp_tool.py 的 `McpTool.invoke()` 中复用 005 的
       `tool_invoke_span`（`tool.invoke` span），`result_type` 取值
       success/timeout/disconnected/tool_execution_failed（data-model.md）
-- [ ] T027 [P] 遥测单元测试 tests/unit/tool/test_mcp_telemetry.py：
+- [X] T027 [P] 遥测单元测试 tests/unit/tool/test_mcp_telemetry.py：
       `mcp.connect` span 含 `tenant_id`/`transport`/`result`；`disconnect()`
       产生一条 `mcp.disconnect` span 且重复调用 `disconnect()` 不重复产生
       （FR-010，C1 修正项）；`McpTool.invoke()` 产生的 `tool.invoke` span

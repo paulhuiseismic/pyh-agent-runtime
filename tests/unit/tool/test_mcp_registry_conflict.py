@@ -9,7 +9,7 @@ async def test_conflicting_tool_name_skipped_others_registered(mcp_stdio_config)
     registry.register(existing)
 
     connection = McpServerConnection(mcp_stdio_config)
-    await connection.connect()
+    await connection.connect(tenant_id="tenant-a")
     result = await register_mcp_tools(connection, registry)
 
     assert "echo" not in result.registered
@@ -18,4 +18,4 @@ async def test_conflicting_tool_name_skipped_others_registered(mcp_stdio_config)
     assert "fail" in result.registered
     assert registry.get("echo") is existing
 
-    await connection.disconnect()
+    await connection.disconnect(tenant_id="tenant-a")

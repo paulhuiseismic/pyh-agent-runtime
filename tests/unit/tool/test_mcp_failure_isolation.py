@@ -15,7 +15,7 @@ async def test_connect_bad_stdio_command_raises_connection_error(
 ):
     connection = McpServerConnection(mcp_bad_command_config)
     with pytest.raises(McpConnectionError):
-        await connection.connect()
+        await connection.connect(tenant_id="tenant-a")
 
 
 async def test_connect_unreachable_http_raises_connection_error(
@@ -23,22 +23,22 @@ async def test_connect_unreachable_http_raises_connection_error(
 ):
     connection = McpServerConnection(mcp_unreachable_http_config)
     with pytest.raises(McpConnectionError):
-        await connection.connect()
+        await connection.connect(tenant_id="tenant-a")
 
 
 async def test_call_timeout_raises_mcp_timeout_error(mcp_stdio_config):
     connection = McpServerConnection(mcp_stdio_config)
-    await connection.connect()
+    await connection.connect(tenant_id="tenant-a")
     tool = McpTool(name="slow", description="slow tool", connection=connection)
     with pytest.raises(McpTimeoutError):
         await tool.invoke({"seconds": 10.0}, tenant_id="tenant-a")
-    await connection.disconnect()
+    await connection.disconnect(tenant_id="tenant-a")
 
 
 async def test_disconnect_then_invoke_raises_disconnected_error(mcp_stdio_config):
     connection = McpServerConnection(mcp_stdio_config)
-    await connection.connect()
-    await connection.disconnect()
+    await connection.connect(tenant_id="tenant-a")
+    await connection.disconnect(tenant_id="tenant-a")
     with pytest.raises(McpDisconnectedError):
         await connection.call_tool("echo", {"payload": {}})
 
@@ -58,12 +58,12 @@ async def test_failed_connection_does_not_affect_other_tools(
     registry.register(EchoTool())
 
     good_connection = McpServerConnection(mcp_stdio_config)
-    await good_connection.connect()
+    await good_connection.connect(tenant_id="tenant-a")
     await register_mcp_tools(good_connection, registry)
 
     bad_connection = McpServerConnection(mcp_bad_command_config)
     with pytest.raises(McpConnectionError):
-        await bad_connection.connect()
+        await bad_connection.connect(tenant_id="tenant-a")
 
     result = await registry.get("echo").invoke({}, tenant_id="tenant-a")
     assert result == "{}"
@@ -71,4 +71,4 @@ async def test_failed_connection_does_not_affect_other_tools(
     invoke_result = await slow_tool.invoke({"seconds": 0}, tenant_id="tenant-a")
     assert invoke_result == "done"
 
-    await good_connection.disconnect()
+    await good_connection.disconnect(tenant_id="tenant-a")

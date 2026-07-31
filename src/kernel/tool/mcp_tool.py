@@ -2,7 +2,9 @@ from dataclasses import dataclass, field
 
 from kernel.provider.errors import InvalidRequestError
 from kernel.tool.mcp_client import McpServerConnection
+from kernel.tool.mcp_errors import McpDisconnectedError, McpTimeoutError, McpToolExecutionError
 from kernel.tool.registry import ToolRegistry
+from kernel.tool.telemetry import tool_invoke_span
 
 
 class McpTool:
@@ -14,7 +16,20 @@ class McpTool:
         self._connection = connection
 
     async def invoke(self, arguments: dict, *, tenant_id: str) -> str:
-        return await self._connection.call_tool(self.name, arguments)
+        with tool_invoke_span(tenant_id=tenant_id, tool_name=self.name) as span:
+            try:
+                result = await self._connection.call_tool(self.name, arguments)
+            except McpTimeoutError:
+                span.set_result_type("timeout")
+                raise
+            except McpDisconnectedError:
+                span.set_result_type("disconnected")
+                raise
+            except McpToolExecutionError:
+                span.set_result_type("tool_execution_failed")
+                raise
+            span.set_result_type("success")
+            return result
 
 
 @dataclass

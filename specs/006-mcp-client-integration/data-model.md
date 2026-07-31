@@ -75,9 +75,10 @@ class McpServerConnection:
     @property
     def state(self) -> McpConnectionState: ...
 
-    async def connect(self) -> None: ...
+    async def connect(self, *, tenant_id: str) -> None: ...
         # 建立底层传输（stdio_client / streamablehttp_client） + ClientSession.initialize()
         # 失败 → McpConnectionError；超时 → McpTimeoutError(stage="connect")
+        # tenant_id 用于 mcp.connect span 归属（FR-010），非连接自身状态的一部分
 
     async def discover_tools(self) -> list[DiscoveredMcpTool]: ...
         # 失败/未连接 → McpDisconnectedError；超时 → McpTimeoutError(stage="discover")
@@ -88,7 +89,7 @@ class McpServerConnection:
         # 返回内容标记 isError → McpToolExecutionError(tool_name, detail)
         # 成功 → 返回结果内容转换后的字符串
 
-    async def disconnect(self) -> None: ...
+    async def disconnect(self, *, tenant_id: str) -> None: ...
         # 主动关闭底层传输，状态转 DISCONNECTED，幂等（重复调用不报错，
         # 且不重复产生 mcp.disconnect span）；产生一条 mcp.disconnect span
         # （见"遥测 span 契约"一节，对应 FR-010 的"断开"生命周期事件）
@@ -135,7 +136,7 @@ RegisterMcpToolsResult:
 
 ```text
 connection = McpServerConnection(config)
-  → await connection.connect()
+  → await connection.connect(tenant_id=tenant_id)
       ├─ 失败/超时 → McpConnectionError / McpTimeoutError(stage="connect")
       │   （状态转 CONNECT_FAILED，需新建实例重试，不支持原地重连）
       └─ 成功 → 状态转 CONNECTED
@@ -152,7 +153,7 @@ connection = McpServerConnection(config)
               ├─ 连接已断开 → McpDisconnectedError
               ├─ isError 标记 → McpToolExecutionError(tool_name, detail)
               └─ 成功 → 字符串结果
-  → await connection.disconnect()  # 主动断开，产生 mcp.disconnect span，
+  → await connection.disconnect(tenant_id=tenant_id)  # 主动断开，产生 mcp.disconnect span，
                                     # 之后调用一律 McpDisconnectedError
 ```
 
