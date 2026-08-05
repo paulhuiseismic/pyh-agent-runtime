@@ -221,18 +221,18 @@ US2（并发调度、请求超时与同会话串行化）在 US1 建立的 `app.
 span），验证租户标识一致且父子关系正确；发起一次无租户标识的请求，验证
 除鉴权失败本身外没有任何内核 span 被产生
 
-- [ ] T022 [US3] 扩展遥测 src/platform_service/telemetry.py：
+- [X] T022 [US3] 扩展遥测 src/platform_service/telemetry.py：
       `platform_request_span(tenant_id, session_id)` 上下文管理器，
       span name="platform.request"，复用 kernel.provider 的 tracer
       （与 001-006 一致的 tracer 复用惯例），可后补 `result` 属性，
       遥测异常 try/except 不影响请求处理（data-model.md span 契约）
-- [ ] T023 [US3] 在 src/platform_service/app.py 集成 `platform_request_span`
+- [X] T023 [US3] 在 src/platform_service/app.py 集成 `platform_request_span`
       包裹整个端点处理逻辑（鉴权解析出 tenant_id 之后开始计入 span，
       鉴权失败前的拒绝不产生此 span 或以匿名/无 tenant_id 状态提前
       ERROR 结束，data-model.md），各失败类型对应设置 `result`
       （success/auth_failed/concurrency_exceeded/validation_failed/
       kernel_error/timeout）
-- [ ] T024 [P] [US3] 遥测与租户贯通单元测试
+- [X] T024 [P] [US3] 遥测与租户贯通单元测试
       tests/unit/platform_service/test_telemetry.py：用 in-memory span
       exporter 驱动一次成功请求，断言 `platform.request` span 与其触发
       的内核 `chat {model}` 子 span 均携带一致的 `tenant_id`，且子 span

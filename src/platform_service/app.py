@@ -14,6 +14,7 @@ from platform_service.errors import (
 )
 from platform_service.models import AgentRunRequest, AgentRunResult
 from platform_service.scheduler import ConcurrencyScheduler
+from platform_service.telemetry import platform_request_span
 
 
 def create_app(
@@ -47,32 +48,42 @@ def create_app(
         try:
             tenant_id = resolve_tenant(x_api_key, config)
         except AuthenticationError as exc:
+            # 鉴权失败发生在 platform.request span 开始之前（未识别出租户前
+            # 不产生任何内核/平台可观测记录，data-model.md）。
             raise HTTPException(status_code=401, detail=str(exc)) from exc
 
-        scheduler: ConcurrencyScheduler = app.state.scheduler
-        try:
-            await scheduler.try_acquire(tenant_id)
-        except ConcurrencyLimitExceededError as exc:
-            raise HTTPException(status_code=429, detail=str(exc)) from exc
-
-        try:
-            service: AgentService = app.state.agent_service
+        with platform_request_span(
+            tenant_id=tenant_id, session_id=request.session_id
+        ) as span:
+            scheduler: ConcurrencyScheduler = app.state.scheduler
             try:
-                return await asyncio.wait_for(
-                    service.handle(request, tenant_id=tenant_id),
-                    timeout=config.request_timeout_seconds,
-                )
-            except asyncio.TimeoutError as exc:
-                raise HTTPException(
-                    status_code=504,
-                    detail=str(RequestTimeoutError(config.request_timeout_seconds)),
-                ) from exc
-            except Exception as exc:
-                raise HTTPException(
-                    status_code=502, detail=f"kernel processing failed: {exc}"
-                ) from exc
-        finally:
-            scheduler.release(tenant_id)
+                await scheduler.try_acquire(tenant_id)
+            except ConcurrencyLimitExceededError as exc:
+                span.set_result("concurrency_exceeded")
+                raise HTTPException(status_code=429, detail=str(exc)) from exc
+
+            try:
+                service: AgentService = app.state.agent_service
+                try:
+                    result = await asyncio.wait_for(
+                        service.handle(request, tenant_id=tenant_id),
+                        timeout=config.request_timeout_seconds,
+                    )
+                except asyncio.TimeoutError as exc:
+                    span.set_result("timeout")
+                    raise HTTPException(
+                        status_code=504,
+                        detail=str(RequestTimeoutError(config.request_timeout_seconds)),
+                    ) from exc
+                except Exception as exc:
+                    span.set_result("kernel_error")
+                    raise HTTPException(
+                        status_code=502, detail=f"kernel processing failed: {exc}"
+                    ) from exc
+                span.set_result("success")
+                return result
+            finally:
+                scheduler.release(tenant_id)
 
     return app
 
