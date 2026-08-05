@@ -2,3 +2,26 @@
 
 契约见 specs/007-platform-web-service/contracts/agent-run-api.md。
 """
+
+from platform_service.agent_service import AgentService, build_agent_service
+from platform_service.app import create_app
+from platform_service.config import PlatformConfig, TenantConfig
+from platform_service.errors import (
+    AuthenticationError,
+    ConcurrencyLimitExceededError,
+    RequestTimeoutError,
+)
+from platform_service.models import AgentRunRequest, AgentRunResult
+
+__all__ = [
+    "AgentService",
+    "build_agent_service",
+    "create_app",
+    "PlatformConfig",
+    "TenantConfig",
+    "AgentRunRequest",
+    "AgentRunResult",
+    "AuthenticationError",
+    "ConcurrencyLimitExceededError",
+    "RequestTimeoutError",
+]

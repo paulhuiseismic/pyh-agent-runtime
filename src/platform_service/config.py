@@ -1,7 +1,8 @@
+import json
 from dataclasses import dataclass, field
 
 from kernel.provider.errors import InvalidRequestError
-from kernel.provider.models import Limits, PriceTable
+from kernel.provider.models import Limits, ModelPrice, PriceTable
 from kernel.tool import McpServerConfig
 
 
@@ -35,6 +36,8 @@ class PlatformConfig:
     provider_api_key: str | None = None
     provider_call_limits: Limits | None = None
     mcp_servers: list[McpServerConfig] = field(default_factory=list)
+    session_memory_db_path: str = "platform_sessions.db"
+    long_term_memory_db_path: str = "platform_long_term.db"
 
     def __post_init__(self) -> None:
         if self.global_max_concurrent_requests <= 0:
@@ -67,3 +70,42 @@ class PlatformConfig:
         tenant_ids = [t.tenant_id for t in self.tenants]
         if len(tenant_ids) != len(set(tenant_ids)):
             raise InvalidRequestError("tenants 中存在重复的 tenant_id")
+
+
+def load_config_from_file(path: str) -> PlatformConfig:
+    """从 JSON 配置文件加载 PlatformConfig（供 `uvicorn platform_service.app:app`
+    生产启动路径使用，示例结构见 examples/platform_config.example.json）。"""
+    with open(path, encoding="utf-8") as f:
+        raw = json.load(f)
+
+    tenants = [
+        TenantConfig(
+            api_key=t["api_key"],
+            tenant_id=t["tenant_id"],
+            max_concurrent_requests=t["max_concurrent_requests"],
+        )
+        for t in raw["tenants"]
+    ]
+    price_table = PriceTable(
+        prices={
+            model: ModelPrice(
+                input_per_1k_usd=price["input_per_1k_usd"],
+                output_per_1k_usd=price["output_per_1k_usd"],
+            )
+            for model, price in raw["price_table"].items()
+        }
+    )
+    return PlatformConfig(
+        tenants=tenants,
+        global_max_concurrent_requests=raw["global_max_concurrent_requests"],
+        request_timeout_seconds=raw["request_timeout_seconds"],
+        model=raw["model"],
+        max_steps=raw["max_steps"],
+        provider_base_url=raw["provider_base_url"],
+        price_table=price_table,
+        provider_api_key=raw.get("provider_api_key"),
+        session_memory_db_path=raw.get("session_memory_db_path", "platform_sessions.db"),
+        long_term_memory_db_path=raw.get(
+            "long_term_memory_db_path", "platform_long_term.db"
+        ),
+    )

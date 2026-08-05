@@ -102,10 +102,10 @@ US2（并发调度、请求超时与同会话串行化）在 US1 建立的 `app.
 响应；发起一次不带 API Key 的请求验证鉴权失败响应；模拟内核调用失败
 验证对应失败响应——全程不依赖 US2 的并发调度、US3 的遥测断言
 
-- [ ] T009 [US1] 实现鉴权 src/platform_service/auth.py：
+- [X] T009 [US1] 实现鉴权 src/platform_service/auth.py：
       `resolve_tenant(api_key, config) -> str`，未匹配到任何
       `TenantConfig.api_key` 时抛 `AuthenticationError`（FR-002）
-- [ ] T010 [US1] 实现核心服务 src/platform_service/agent_service.py：
+- [X] T010 [US1] 实现核心服务 src/platform_service/agent_service.py：
       `AgentService.__init__(provider, tool_registry, session_memory,
       long_term_memory, config)`；`handle(request, *, tenant_id)`——
       按 data-model.md 序列：查询长期记忆事实（如有）→ 加载会话历史
@@ -117,7 +117,7 @@ US2（并发调度、请求超时与同会话串行化）在 US1 建立的 `app.
       （失败不影响返回）→ 返回 `AgentRunResult(status="success", ...)`；
       内核抛出的任何异常直接向上传播，不在此处捕获（research.md R3）；
       本任务暂不含会话级串行化（FR-015 留待 US2 的 T018 补全）
-- [ ] T011 [US1] 实现 FastAPI 应用 src/platform_service/app.py：
+- [X] T011 [US1] 实现 FastAPI 应用 src/platform_service/app.py：
       应用启动（lifespan）时用 `PlatformConfig.provider_base_url`/
       `provider_api_key`/`price_table`/`provider_call_limits` 构造一次
       共享的 `LLMProvider`（001），用 `PlatformConfig.mcp_servers` 依次
@@ -129,21 +129,21 @@ US2（并发调度、请求超时与同会话串行化）在 US1 建立的 `app.
       自动映射 422）→ `await agent_service.handle(request, tenant_id=
       tenant_id)` → 内核异常映射 502 → 成功返回 `AgentRunResult` 映射
       200（本任务暂不含并发调度与整体超时包裹，US2 补全）
-- [ ] T012 [US1] 包级导出 src/platform_service/__init__.py 追加：按
+- [X] T012 [US1] 包级导出 src/platform_service/__init__.py 追加：按
       contracts/agent-run-api.md 导出 `AgentService`、`AgentRunRequest`、
       `AgentRunResult`、`PlatformConfig`、`TenantConfig`、平台异常层级、
       FastAPI `app` 实例
-- [ ] T013 [P] [US1] 鉴权单元测试 tests/unit/platform_service/test_auth.py：
+- [X] T013 [P] [US1] 鉴权单元测试 tests/unit/platform_service/test_auth.py：
       合法 API Key 解析出正确 tenant_id（验收场景 US3-2 的前置）；未匹配
       的 API Key 抛 `AuthenticationError`（验收场景 US3-1 的前置）
-- [ ] T014 [P] [US1] AgentService 端到端单元测试
+- [X] T014 [P] [US1] AgentService 端到端单元测试
       tests/unit/platform_service/test_agent_service.py：stub provider +
       内存 `ToolRegistry` 驱动 `handle()`，验证返回
       `AgentRunResult(status="success", answer=...)`（验收场景 US1-1）；
       提供 session_id 时验证会话记忆中写入了用户问题与最终答案两条消息
       （验收场景 US1-3）；provider 抛出的异常经 `handle()` 原样向上传播
       （验收场景 US1-2 的前置）
-- [ ] T015 [P] [US1] FastAPI 端到端单元测试
+- [X] T015 [P] [US1] FastAPI 端到端单元测试
       tests/unit/platform_service/test_app.py：用
       `httpx.AsyncClient(transport=httpx.ASGITransport(app=app))` 驱动——
       合法请求返回 200 且 `answer` 非空（验收场景 US1-1）；缺失/非法
