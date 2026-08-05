@@ -36,13 +36,13 @@ US2（并发调度、请求超时与同会话串行化）在 US1 建立的 `app.
 
 **Purpose**: 引入新依赖、登记 license、准备包与测试目录骨架
 
-- [ ] T001 在 pyproject.toml 的 `dependencies` 中新增 `fastapi`，并把已在
+- [X] T001 在 pyproject.toml 的 `dependencies` 中新增 `fastapi`，并把已在
       依赖树中的 `uvicorn` 提升为直接依赖；在 THIRD_PARTY.md 追加两行登记
       （组件名/MIT license/Python 库依赖/无特殊约束），随后执行
       `pip install -e ".[dev]"` 验证安装成功
-- [ ] T002 [P] 创建包骨架 src/platform_service/__init__.py（暂为空模块，
+- [X] T002 [P] 创建包骨架 src/platform_service/__init__.py（暂为空模块，
       导出留待 T014 补全）
-- [ ] T003 [P] 创建测试目录骨架 tests/unit/platform_service/__init__.py
+- [X] T003 [P] 创建测试目录骨架 tests/unit/platform_service/__init__.py
 
 **Checkpoint**: `python -c "import platform_service"` 可正常导入
 
@@ -54,7 +54,7 @@ US2（并发调度、请求超时与同会话串行化）在 US1 建立的 `app.
 
 **⚠️ CRITICAL**: 本阶段完成前任何用户故事不能开工
 
-- [ ] T004 实现配置 src/platform_service/config.py：frozen dataclass
+- [X] T004 实现配置 src/platform_service/config.py：frozen dataclass
       `TenantConfig`（api_key/tenant_id/max_concurrent_requests，正整数
       校验）、`PlatformConfig`——
       `tenants`/`global_max_concurrent_requests`/`request_timeout_seconds`/
@@ -68,21 +68,21 @@ US2（并发调度、请求超时与同会话串行化）在 US1 建立的 `app.
       （FR-013/FR-014，data-model.md）；任一校验失败抛 `InvalidRequestError`
       （复用 001 异常）——**这是 C1/C2 修正项：没有这些字段
       `AgentService` 将无法构造出可用的 `LLMProvider`/`ToolRegistry`**
-- [ ] T005 [P] 实现平台层异常 src/platform_service/errors.py：
+- [X] T005 [P] 实现平台层异常 src/platform_service/errors.py：
       `AuthenticationError(detail)`、
       `ConcurrencyLimitExceededError(scope: "tenant"|"global")`、
       `RequestTimeoutError(timeout_seconds)`（均独立于内核异常层级，
       data-model.md）
-- [ ] T006 [P] 实现数据模型 src/platform_service/models.py：pydantic
+- [X] T006 [P] 实现数据模型 src/platform_service/models.py：pydantic
       `AgentRunRequest`（goal: str 非空必填，session_id: str|None）、
       `AgentRunResult`（status/answer/session_id）
-- [ ] T007 [P] 创建测试公共设施 tests/unit/platform_service/conftest.py：
+- [X] T007 [P] 创建测试公共设施 tests/unit/platform_service/conftest.py：
       示例 `PlatformConfig`/`TenantConfig` fixture（含至少两个租户，便于
       US2 的租户间隔离测试；`provider_base_url`/`price_table` 均填好合法
       占位值）、stub `LLMProvider` fixture（复用 001 `httpx.MockTransport`
       模式，返回固定的 ReAct `final_answer` JSON，并提供一个"慢响应"变体
       供 US2 的并发/超时测试使用）
-- [ ] T008 [P] 配置与异常单元测试
+- [X] T008 [P] 配置与异常单元测试
       tests/unit/platform_service/test_config.py：默认值/正常构造成功；
       并发上限/超时字段 ≤0、重复 api_key/tenant_id、`provider_base_url`
       为空、`price_table` 未覆盖 `model` 对应单价，均抛

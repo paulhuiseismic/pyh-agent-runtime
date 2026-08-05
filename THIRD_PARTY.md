@@ -10,3 +10,5 @@
 | pytest / pytest-asyncio | MIT / Apache-2.0 | dev 依赖，不进入生产分发 | — |
 | aiosqlite | MIT | Python 库依赖（memory 模块的异步 SQLite 驱动） | — |
 | mcp（官方 Model Context Protocol Python SDK） | MIT | Python 库依赖（tool 模块的 MCP 客户端协议实现，006） | 仅使用 client 侧（`ClientSession`/`stdio_client`/`streamablehttp_client`）与测试用 `FastMCP`，不修改源码 |
+| FastAPI | MIT | Python 库依赖（platform_service 模块的 REST 框架，007） | 仅使用核心路由/请求校验能力，不修改源码 |
+| uvicorn | BSD-3-Clause | Python 库依赖（platform_service 模块的 ASGI 服务器，007；此前已作为 mcp 的传递依赖存在） | — |

@@ -13,6 +13,8 @@ dependencies = [
     "opentelemetry-sdk>=1.25",
     "aiosqlite>=0.20",
     "mcp>=1.0",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
 ]
 
 [project.optional-dependencies]
