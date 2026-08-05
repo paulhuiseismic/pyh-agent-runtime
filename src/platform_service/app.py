@@ -1,3 +1,4 @@
+import asyncio
 import os
 from contextlib import asynccontextmanager
 
@@ -6,8 +7,13 @@ from fastapi import FastAPI, Header, HTTPException
 from platform_service.agent_service import AgentService, build_agent_service
 from platform_service.auth import resolve_tenant
 from platform_service.config import PlatformConfig, load_config_from_file
-from platform_service.errors import AuthenticationError
+from platform_service.errors import (
+    AuthenticationError,
+    ConcurrencyLimitExceededError,
+    RequestTimeoutError,
+)
 from platform_service.models import AgentRunRequest, AgentRunResult
+from platform_service.scheduler import ConcurrencyScheduler
 
 
 def create_app(
@@ -32,6 +38,7 @@ def create_app(
     app = FastAPI(lifespan=lifespan)
     app.state.config = config
     app.state.agent_service = agent_service
+    app.state.scheduler = ConcurrencyScheduler(config)
 
     @app.post("/v1/agent/run", response_model=AgentRunResult)
     async def run_agent(
@@ -42,13 +49,30 @@ def create_app(
         except AuthenticationError as exc:
             raise HTTPException(status_code=401, detail=str(exc)) from exc
 
-        service: AgentService = app.state.agent_service
+        scheduler: ConcurrencyScheduler = app.state.scheduler
         try:
-            return await service.handle(request, tenant_id=tenant_id)
-        except Exception as exc:
-            raise HTTPException(
-                status_code=502, detail=f"kernel processing failed: {exc}"
-            ) from exc
+            await scheduler.try_acquire(tenant_id)
+        except ConcurrencyLimitExceededError as exc:
+            raise HTTPException(status_code=429, detail=str(exc)) from exc
+
+        try:
+            service: AgentService = app.state.agent_service
+            try:
+                return await asyncio.wait_for(
+                    service.handle(request, tenant_id=tenant_id),
+                    timeout=config.request_timeout_seconds,
+                )
+            except asyncio.TimeoutError as exc:
+                raise HTTPException(
+                    status_code=504,
+                    detail=str(RequestTimeoutError(config.request_timeout_seconds)),
+                ) from exc
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=502, detail=f"kernel processing failed: {exc}"
+                ) from exc
+        finally:
+            scheduler.release(tenant_id)
 
     return app
 

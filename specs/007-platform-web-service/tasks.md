@@ -165,26 +165,26 @@ US2（并发调度、请求超时与同会话串行化）在 US1 建立的 `app.
 请求超时，验证长耗时请求被正确终止并返回超时响应；对同一 session_id
 并发发起两个请求，验证两次写入的会话历史未交叉损坏
 
-- [ ] T016 [US2] 实现并发调度器 src/platform_service/scheduler.py：
+- [X] T016 [US2] 实现并发调度器 src/platform_service/scheduler.py：
       `ConcurrencyScheduler(config)`——`try_acquire(tenant_id)` 用
       `asyncio.Lock` 保护"检查上限+自增"的原子性，租户或全局任一超限时
       抛 `ConcurrencyLimitExceededError(scope=...)`，不阻塞等待
       （research.md R2，FR-012）；`release(tenant_id)` 对应自减，
       MUST NOT 抛异常
-- [ ] T017 [US2] 在 src/platform_service/app.py 集成调度与超时：
+- [X] T017 [US2] 在 src/platform_service/app.py 集成调度与超时：
       鉴权成功后先 `scheduler.try_acquire(tenant_id)`（失败映射 429）；
       用 `asyncio.wait_for(agent_service.handle(...), timeout=
       config.request_timeout_seconds)` 包裹核心调用（超时映射 504，
       research.md R5）；`finally` 块调用 `scheduler.release(tenant_id)`
       确保计数器不泄漏
-- [ ] T018 [US2] 在 src/platform_service/agent_service.py 补全会话级
+- [X] T018 [US2] 在 src/platform_service/agent_service.py 补全会话级
       串行化（C4 修正项，FR-015）：新增 `SessionLockRegistry`——按
       `session_id` 惰性创建/复用 `asyncio.Lock`（`dict[str, asyncio.Lock]`）；
       `AgentService.handle()` 在提供了 `session_id` 时，把"加载历史 → 拼接
       goal → 运行 ReAct → 写回历史"整段包裹在对应锁内（`finally` 释放）；
       未提供 `session_id` 的请求不加锁，不同 `session_id` 之间不互相阻塞
       （data-model.md SessionLockRegistry）
-- [ ] T019 [P] [US2] 并发调度器单元测试
+- [X] T019 [P] [US2] 并发调度器单元测试
       tests/unit/platform_service/test_scheduler.py：租户达到
       `max_concurrent_requests` 后再次 `try_acquire` 抛
       `ConcurrencyLimitExceededError(scope="tenant")`（验收场景 US2-1）；
@@ -192,13 +192,13 @@ US2（并发调度、请求超时与同会话串行化）在 US1 建立的 `app.
       `scope="global"`（验收场景 US2-2）；租户 A 超限不影响租户 B 的
       `try_acquire` 成功（验收场景 US2-3）；`release` 后计数正确回落，
       可再次 `try_acquire` 成功
-- [ ] T020 [P] [US2] 并发与超时的 FastAPI 端到端单元测试
+- [X] T020 [P] [US2] 并发与超时的 FastAPI 端到端单元测试
       tests/unit/platform_service/test_app_scheduling.py：用一个并发上限
       为 1 的租户配置，并发发起 2 个请求（第二个用尚未完成的慢 stub
       provider 阻塞第一个），验证第二个请求收到 429（验收场景 US2-1）；
       用极短的 `request_timeout_seconds` 配合慢 stub provider，验证请求
       收到 504（FR-009）
-- [ ] T021 [P] [US2] 会话串行化单元测试
+- [X] T021 [P] [US2] 会话串行化单元测试
       tests/unit/platform_service/test_session_lock.py：对同一
       `session_id` 并发调用两次 `AgentService.handle()`（第二次在第一次
       的 stub provider 响应尚未返回时发起），验证两次写入会话记忆的历史
