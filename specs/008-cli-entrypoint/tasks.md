@@ -48,7 +48,7 @@ telemetry` 零改动复用；不依赖 `scheduler.py`，见 research.md R3）
 
 **Purpose**: 声明打包入口，无新增依赖
 
-- [ ] T001 在 pyproject.toml 的 `[project.scripts]` 新增
+- [X] T001 在 pyproject.toml 的 `[project.scripts]` 新增
       `pyh-agent = "platform_service.cli:main"`（无新增第三方依赖，
       `argparse` 为标准库）；不在本任务做人工可用性验证，统一放到
       Polish 阶段的 T014 一次性验证（避免与 T014 重复执行同一步骤）
@@ -64,7 +64,7 @@ telemetry` 零改动复用；不依赖 `scheduler.py`，见 research.md R3）
 
 **⚠️ CRITICAL**: 本阶段完成前任何用户故事不能开工
 
-- [ ] T002 创建 src/platform_service/cli.py 骨架：按
+- [X] T002 创建 src/platform_service/cli.py 骨架：按
       contracts/cli-contract.md 定义退出码常量
       `EXIT_SUCCESS=0`/`EXIT_MISSING_API_KEY=1`/`EXIT_AUTH_FAILED=2`/
       `EXIT_CONFIG_INVALID=3`/`EXIT_VALIDATION_FAILED=4`/
@@ -73,10 +73,10 @@ telemetry` 零改动复用；不依赖 `scheduler.py`，见 research.md R3）
       可选 `--session-id`、可选 `--config`；
       `resolve_api_key(env: Mapping[str, str]) -> str | None`——读取
       `PLATFORM_SERVICE_API_KEY`，未设置或为空返回 `None`
-- [ ] T003 [P] 更新 src/platform_service/__init__.py：追加导出
+- [X] T003 [P] 更新 src/platform_service/__init__.py：追加导出
       `platform_service.cli` 模块的 `main` 函数（供
       `python -m platform_service.cli` 与测试直接 import 引用）
-- [ ] T004 [P] 创建 tests/unit/platform_service/test_cli.py 骨架：
+- [X] T004 [P] 创建 tests/unit/platform_service/test_cli.py 骨架：
       验证 `build_arg_parser()` 正确解析
       `["问题", "--session-id", "s1", "--config", "c.json"]`；
       验证 `resolve_api_key({})` 返回 `None`，
@@ -98,7 +98,7 @@ telemetry` 零改动复用；不依赖 `scheduler.py`，见 research.md R3）
 结果体现第一次积累的会话上下文——全程不依赖 US2 的错误消息断言、US3 的
 span 断言
 
-- [ ] T005 [US1] 在 src/platform_service/cli.py 实现
+- [X] T005 [US1] 在 src/platform_service/cli.py 实现
       `async def run(argv: list[str], env: Mapping[str, str], *,
       agent_service: AgentService | None = None) -> tuple[int, str, str]`：
       1) `build_arg_parser().parse_args(argv)`；2) 解析
@@ -119,23 +119,23 @@ span 断言
       映射 `EXIT_TIMEOUT`，其余异常映射 `EXIT_KERNEL_ERROR`；9)
       成功时返回 `(EXIT_SUCCESS, result.answer + "\n", "")`（暂不含
       `platform.request` span 包裹，US3 补全，research.md R6）
-- [ ] T006 [US1] 在 src/platform_service/cli.py 实现
+- [X] T006 [US1] 在 src/platform_service/cli.py 实现
       `def main() -> None`：`asyncio.run(run(sys.argv[1:], os.environ))`，
       把返回的 stdout/stderr 文本分别写入 `sys.stdout`/`sys.stderr`
       （非空时），以返回的退出码调用 `sys.exit()`
-- [ ] T007 [P] [US1] 在 tests/unit/platform_service/test_cli.py 补充：
+- [X] T007 [P] [US1] 在 tests/unit/platform_service/test_cli.py 补充：
       成功调用（stub provider）验证返回
       `(EXIT_SUCCESS, "42\n", "")`（复用 conftest `stub_provider`）；
       内核处理失败（`erroring_provider`）验证返回 `EXIT_KERNEL_ERROR`
       且 stderr 非空；请求超时（`slow_stub_provider` + 极短
       `request_timeout_seconds`）验证返回 `EXIT_TIMEOUT`
-- [ ] T008 [P] [US1] 在 tests/unit/platform_service/test_cli.py 补充：
+- [X] T008 [P] [US1] 在 tests/unit/platform_service/test_cli.py 补充：
       对同一 `session_id`、指向同一临时数据库文件路径的
       `PlatformConfig`，连续两次调用 `run()`（模拟两次独立命令执行），
       验证第二次的 `AgentRunResult`/输出体现第一次调用积累的会话历史
       （复用 stub provider 按调用次数返回不同内容，断言第二次请求发给
       provider 的内容包含第一次的历史文本）
-- [ ] T009 [P] [US1] 在 tests/unit/platform_service/test_cli.py 补充一个
+- [X] T009 [P] [US1] 在 tests/unit/platform_service/test_cli.py 补充一个
       标记为 `smoke` 的测试（`@pytest.mark.smoke` 或函数名含 `smoke`）：
       用 `subprocess.run([sys.executable, "-m", "platform_service.cli"],
       ...)` 不带任何参数/环境变量调用，验证进程以 `EXIT_MISSING_API_KEY`

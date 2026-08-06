@@ -5,6 +5,7 @@
 
 from platform_service.agent_service import AgentService, build_agent_service
 from platform_service.app import create_app
+from platform_service.cli import main as cli_main
 from platform_service.config import PlatformConfig, TenantConfig
 from platform_service.errors import (
     AuthenticationError,
@@ -17,6 +18,7 @@ __all__ = [
     "AgentService",
     "build_agent_service",
     "create_app",
+    "cli_main",
     "PlatformConfig",
     "TenantConfig",
     "AgentRunRequest",
