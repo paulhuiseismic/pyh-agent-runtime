@@ -18,6 +18,7 @@ from platform_service.auth import resolve_tenant
 from platform_service.config import load_config_from_file
 from platform_service.errors import AuthenticationError
 from platform_service.models import AgentRunRequest
+from platform_service.telemetry import platform_request_span
 
 EXIT_SUCCESS = 0
 EXIT_MISSING_API_KEY = 1
@@ -29,6 +30,16 @@ EXIT_KERNEL_ERROR = 6
 
 _API_KEY_ENV_VAR = "PLATFORM_SERVICE_API_KEY"
 _CONFIG_ENV_VAR = "PLATFORM_SERVICE_CONFIG"
+
+
+class _CliFailure(Exception):
+    """内部信号：携带退出码与 stderr 文本，跨越 `platform_request_span`
+    的 `with` 块传递（span 需要在异常路径下也能记录 result 属性并正常
+    退出，见 telemetry.py 的行为契约）。"""
+
+    def __init__(self, exit_code: int, stderr_text: str) -> None:
+        self.exit_code = exit_code
+        self.stderr_text = stderr_text
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -88,20 +99,26 @@ async def run(
     request = AgentRunRequest(goal=args.goal, session_id=args.session_id)
 
     try:
-        result = await asyncio.wait_for(
-            service.handle(request, tenant_id=tenant_id),
-            timeout=config.request_timeout_seconds,
-        )
-    except asyncio.TimeoutError:
-        return (
-            EXIT_TIMEOUT,
-            "",
-            f"错误: 请求处理超时（超过 {config.request_timeout_seconds}s）\n",
-        )
-    except Exception as exc:
-        return (EXIT_KERNEL_ERROR, "", f"错误: 内核处理失败: {exc}\n")
+        with platform_request_span(tenant_id=tenant_id, session_id=args.session_id) as span:
+            try:
+                result = await asyncio.wait_for(
+                    service.handle(request, tenant_id=tenant_id),
+                    timeout=config.request_timeout_seconds,
+                )
+            except asyncio.TimeoutError:
+                span.set_result("timeout")
+                raise _CliFailure(
+                    EXIT_TIMEOUT,
+                    f"错误: 请求处理超时（超过 {config.request_timeout_seconds}s）\n",
+                ) from None
+            except Exception as exc:
+                span.set_result("kernel_error")
+                raise _CliFailure(EXIT_KERNEL_ERROR, f"错误: 内核处理失败: {exc}\n") from exc
 
-    return (EXIT_SUCCESS, result.answer + "\n", "")
+            span.set_result("success")
+            return (EXIT_SUCCESS, result.answer + "\n", "")
+    except _CliFailure as failure:
+        return (failure.exit_code, "", failure.stderr_text)
 
 
 def main() -> None:

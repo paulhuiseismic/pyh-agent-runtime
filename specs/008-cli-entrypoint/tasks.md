@@ -189,13 +189,13 @@ span 断言
 `cli.run()` 调用，验证产生的 `platform.request` 根 span 与其下内核
 `chat {model}`/`react.step` 子 span 均携带一致的 `tenant_id`
 
-- [ ] T011 [US3] 在 src/platform_service/cli.py 的 `run()` 中，用
+- [X] T011 [US3] 在 src/platform_service/cli.py 的 `run()` 中，用
       `platform_service.telemetry.platform_request_span(tenant_id=...,
       session_id=...)`（复用 007 既有实现，零改动）包裹 T005 第 8 步的
       `asyncio.wait_for(...)` 调用，各退出分支对应设置
       span 的 `result`（success/timeout/kernel_error），与 007 `app.py`
       的既有用法完全一致（research.md R6）
-- [ ] T012 [P] [US3] 创建 tests/unit/platform_service/test_cli_telemetry.py：
+- [X] T012 [P] [US3] 创建 tests/unit/platform_service/test_cli_telemetry.py：
       用 `InMemorySpanExporter` 驱动一次成功的 `run()` 调用，断言
       `platform.request` span 携带正确 `tenant_id`，其下 `react.step`/
       `chat {model}` 子 span 与之 trace_id 一致、父子关系正确（复用 007
