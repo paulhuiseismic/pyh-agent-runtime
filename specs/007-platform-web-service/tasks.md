@@ -250,21 +250,21 @@ span），验证租户标识一致且父子关系正确；发起一次无租户�
 
 **Purpose**: 示例配置、演示脚本、文档收尾与最终验证
 
-- [ ] T025 [P] 创建示例配置 examples/platform_config.example.json：
+- [X] T025 [P] 创建示例配置 examples/platform_config.example.json：
       至少两个租户（不同 `max_concurrent_requests`）、一个全局并发上限、
       一个请求超时、`model`/`max_steps` 默认值、占位的
       `provider_base_url`/`price_table`（demo 脚本中会替换为 stub
       provider，示例文件本身仅用于展示完整字段结构），供 quickstart.md
       与 demo 脚本使用
-- [ ] T026 [P] 创建演示脚本 examples/demo_platform_service.py：加载
+- [X] T026 [P] 创建演示脚本 examples/demo_platform_service.py：加载
       T025 的示例配置结构（provider 替换为 stub，避免需要真实模型密钥）、
       构建 FastAPI app、用 `httpx.ASGITransport` 依次演示成功调用、
       鉴权失败、并发超限、内核失败四个场景，并打印每次请求的
       `platform.request` span
-- [ ] T027 按 quickstart.md 全流程验证：`pytest tests/unit/platform_service
+- [X] T027 按 quickstart.md 全流程验证：`pytest tests/unit/platform_service
       -v` 全绿（SC-001~SC-005、SC-007）→ demo 脚本输出符合预期 → 计时
       确认 15 分钟内完成，修复发现的问题
-- [ ] T028 更新 README.md roadmap：007 状态改为"已完成"；更新
+- [X] T028 更新 README.md roadmap：007 状态改为"已完成"；更新
       examples/README.md 追加 `demo_platform_service.py` 条目
 
 ---

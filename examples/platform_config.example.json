@@ -1,0 +1,17 @@
+{
+  "tenants": [
+    {"api_key": "demo-key", "tenant_id": "tenant-demo", "max_concurrent_requests": 5},
+    {"api_key": "demo-key-2", "tenant_id": "tenant-demo-2", "max_concurrent_requests": 2}
+  ],
+  "global_max_concurrent_requests": 20,
+  "request_timeout_seconds": 30.0,
+  "model": "azure-gpt4o-mini",
+  "max_steps": 6,
+  "provider_base_url": "http://127.0.0.1:4000",
+  "provider_api_key": null,
+  "price_table": {
+    "azure-gpt4o-mini": {"input_per_1k_usd": 0.00015, "output_per_1k_usd": 0.0006}
+  },
+  "session_memory_db_path": "platform_sessions.db",
+  "long_term_memory_db_path": "platform_long_term.db"
+}
