@@ -158,6 +158,64 @@ async def test_run_session_continuity(platform_config, tmp_path):
         await long_term_memory.aclose()
 
 
+class _RefusingAgentService:
+    """哨兵 AgentService：一旦被调用即断言失败，用于验证鉴权/配置失败路径
+    从未触及内核调用（US2）。"""
+
+    async def handle(self, request, *, tenant_id):
+        raise AssertionError("AgentService.handle() 不应在此失败路径下被调用")
+
+
+async def test_run_missing_api_key(platform_config, tmp_path):
+    config_path = tmp_path / "config.json"
+    _write_config_file(config_path, platform_config)
+
+    exit_code, stdout, stderr = await cli.run(
+        ["问题"],
+        {"PLATFORM_SERVICE_CONFIG": str(config_path)},
+        agent_service=_RefusingAgentService(),
+    )
+    assert exit_code == cli.EXIT_MISSING_API_KEY
+    assert stdout == ""
+    assert stderr != ""
+    missing_key_stderr = stderr
+
+    exit_code, stdout, stderr = await cli.run(
+        ["问题"],
+        {"PLATFORM_SERVICE_API_KEY": "wrong-key", "PLATFORM_SERVICE_CONFIG": str(config_path)},
+        agent_service=_RefusingAgentService(),
+    )
+    assert exit_code == cli.EXIT_AUTH_FAILED
+    assert stdout == ""
+    assert stderr != ""
+    assert stderr != missing_key_stderr
+
+
+async def test_run_invalid_config_path():
+    exit_code, stdout, stderr = await cli.run(
+        ["问题", "--config", "not-exist-config.json"],
+        {"PLATFORM_SERVICE_API_KEY": "key-a"},
+        agent_service=_RefusingAgentService(),
+    )
+    assert exit_code == cli.EXIT_CONFIG_INVALID
+    assert stdout == ""
+    assert stderr != ""
+
+
+async def test_run_empty_goal(platform_config, tmp_path):
+    config_path = tmp_path / "config.json"
+    _write_config_file(config_path, platform_config)
+
+    exit_code, stdout, stderr = await cli.run(
+        [""],
+        {"PLATFORM_SERVICE_API_KEY": "key-a", "PLATFORM_SERVICE_CONFIG": str(config_path)},
+        agent_service=_RefusingAgentService(),
+    )
+    assert exit_code == cli.EXIT_VALIDATION_FAILED
+    assert stdout == ""
+    assert stderr != ""
+
+
 @pytest.mark.smoke
 def test_module_invocable_as_subprocess():
     import os

@@ -162,7 +162,7 @@ span 断言
 > 聚焦于验证这些分支的退出码与错误文本满足"彼此可区分"的验收标准，
 > 如断言发现文本不够清晰会在本阶段task中直接修正 T005 产出的提示文案。
 
-- [ ] T010 [US2] 在 tests/unit/platform_service/test_cli.py 补充：
+- [X] T010 [US2] 在 tests/unit/platform_service/test_cli.py 补充：
       未设置 `PLATFORM_SERVICE_API_KEY` 环境变量 → 验证返回
       `(EXIT_MISSING_API_KEY, "", <非空 stderr>)`（验收场景 US2-1）；
       设置了一个不属于任何租户的 API Key → 验证返回
