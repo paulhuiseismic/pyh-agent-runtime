@@ -53,7 +53,7 @@ token 与成本上限；所有 LLM 调用/tool 执行/消息进出发出 OTel Ge
 | 005 | [plugin tool 插件机制 + sandbox](specs/005-tool-plugin-sandbox/spec.md) | 内核 + 执行环境 | ✅ 已完成 |
 | 006 | [MCP 客户端接入（stdio/HTTP 传输、工具发现、适配为 Tool Protocol）](specs/006-mcp-client-integration/spec.md) | 内核 | ✅ 已完成 |
 | 007 | [平台服务层 + web service（REST API）+ 运行调度](specs/007-platform-web-service/spec.md) | 平台 | ✅ 已完成 |
-| 008 | CLI 入口（复用平台服务层） | 平台 | 待 specify |
+| 008 | [CLI 入口（复用平台服务层）](specs/008-cli-entrypoint/spec.md) | 平台 | ✅ 已完成 |
 | 009 | message 多渠道收发 | 平台 | 待 specify |
 | 010 | 多租户强化与审计 | 平台 | 待 specify |
 

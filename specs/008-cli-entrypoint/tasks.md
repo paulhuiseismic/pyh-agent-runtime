@@ -211,17 +211,17 @@ span 断言
 
 **Purpose**: 演示脚本、文档收尾与最终验证
 
-- [ ] T013 [P] 创建演示脚本 examples/demo_cli.py：复用
+- [X] T013 [P] 创建演示脚本 examples/demo_cli.py：复用
       examples/platform_config.example.json 结构（provider 替换为 stub，
       避免需要真实模型密钥），依次演示成功调用、缺少 API Key、身份识别
       失败、内核失败四个场景，直接调用 `cli.run()` 并打印返回的退出码/
       输出内容
-- [ ] T014 按 quickstart.md 全流程验证：
+- [X] T014 按 quickstart.md 全流程验证：
       `pytest tests/unit/platform_service -v` 全绿（含新增的 `test_cli.py`/
       `test_cli_telemetry.py`）→ demo 脚本输出符合预期 → 执行
       `pip install -e .` 后运行 `pyh-agent --help` 确认控制台命令可用
       （T001 声明的打包入口在此一次性验证）→ 修复发现的问题
-- [ ] T015 更新 README.md roadmap：008 状态改为"✅ 已完成"；更新
+- [X] T015 更新 README.md roadmap：008 状态改为"✅ 已完成"；更新
       examples/README.md 追加 `demo_cli.py` 条目
 
 ---

@@ -15,6 +15,7 @@
 | `demo_tool_sandbox.py` | 无（本地子进程） | tool：注册中心 / 沙箱执行成功/超时/非零退出码 |
 | `demo_mcp_client.py` | 无（测试用 MCP server 由脚本自建） | MCP 客户端：stdio/HTTP 连接发现调用等价、超时、业务失败、断开后失败隔离 |
 | `demo_platform_service.py` | 无（httpx.MockTransport + httpx.ASGITransport） | 平台服务层 REST 入口：成功调用 / 鉴权失败 / 并发超限 / 内核处理失败 |
+| `demo_cli.py` | 无（httpx.MockTransport） | CLI 入口：成功调用 / 缺少 API Key / 身份识别失败 / 内核处理失败 |
 
 ## demo_proxy.py：provider 对接真实模型
 
