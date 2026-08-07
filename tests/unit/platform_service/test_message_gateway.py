@@ -1,10 +1,13 @@
 import asyncio
 import dataclasses
 
+import pytest
+
 from kernel.memory import SqliteMemory
 from kernel.memory.long_term import LongTermMemory
 from kernel.tool import ToolRegistry
 from platform_service.agent_service import AgentService
+from platform_service.errors import ChannelNotFoundError
 from platform_service.message_gateway import (
     MessageGateway,
     ProcessedMessageRegistry,
@@ -153,6 +156,55 @@ async def test_send_callback_retries_exhausted_does_not_raise(
 
         assert len(call_counter) == platform_config.callback_max_retries
         assert any("callback delivery failed" in r.message for r in caplog.records)
+    finally:
+        await session_memory.aclose()
+        await long_term_memory.aclose()
+        await callback_client.aclose()
+
+
+class _RefusingAgentService:
+    """哨兵 AgentService：一旦被调用即断言失败，用于验证渠道未识别路径
+    从未触及内核调用（US2 验收场景 1）。"""
+
+    async def handle(self, request, *, tenant_id):
+        raise AssertionError("AgentService.handle() 不应在渠道未识别路径下被调用")
+
+
+async def test_handle_inbound_unknown_channel_raises_and_skips_processing(
+    platform_config, channel_config
+):
+    callback_client, received = recording_callback_client()
+    config_with_channel = dataclasses.replace(platform_config, channels=[channel_config])
+    gateway = await build_message_gateway(
+        config_with_channel,
+        agent_service=_RefusingAgentService(),
+        callback_client=callback_client,
+    )
+    try:
+        with pytest.raises(ChannelNotFoundError):
+            await gateway.handle_inbound(_message(channel_id="unknown-channel"))
+        await gateway.wait_for_background_tasks()
+        assert received == []
+    finally:
+        await callback_client.aclose()
+
+
+async def test_handle_inbound_duplicate_delivery_only_processed_once(
+    platform_config, channel_config
+):
+    callback_client, received = recording_callback_client()
+    gateway, session_memory, long_term_memory = await _build_gateway(
+        platform_config, channel_config, stub_provider("42"), callback_client
+    )
+    try:
+        first = await gateway.handle_inbound(_message())
+        await gateway.wait_for_background_tasks()
+        second = await gateway.handle_inbound(_message())
+        await gateway.wait_for_background_tasks()
+
+        assert first.duplicate is False
+        assert second.duplicate is True
+        assert len(received) == 1
     finally:
         await session_memory.aclose()
         await long_term_memory.aclose()

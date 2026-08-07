@@ -96,10 +96,26 @@ async def test_inbound_message_response_latency_independent_of_processing(
         await callback_client.aclose()
 
 
+class _RefusingAgentService:
+    """哨兵 AgentService：一旦被调用即断言失败，用于双重验证渠道未识别
+    的请求从未触及内核调用（US2 验收场景 1）。"""
+
+    async def handle(self, request, *, tenant_id):
+        raise AssertionError("AgentService.handle() 不应在渠道未识别路径下被调用")
+
+
 async def test_unknown_channel_returns_404(platform_config, channel_config):
+    from platform_service.message_gateway import build_message_gateway
+
     callback_client, received = recording_callback_client()
-    app, gateway, session_memory, long_term_memory = await _build_app(
-        platform_config, channel_config, stub_provider("42"), callback_client
+    config_with_channel = dataclasses.replace(platform_config, channels=[channel_config])
+    gateway = await build_message_gateway(
+        config_with_channel,
+        agent_service=_RefusingAgentService(),
+        callback_client=callback_client,
+    )
+    app = create_app(
+        config_with_channel, agent_service=_RefusingAgentService(), message_gateway=gateway
     )
     try:
         async with httpx.AsyncClient(
@@ -113,8 +129,6 @@ async def test_unknown_channel_returns_404(platform_config, channel_config):
         await gateway.wait_for_background_tasks()
         assert received == []
     finally:
-        await session_memory.aclose()
-        await long_term_memory.aclose()
         await callback_client.aclose()
 
 

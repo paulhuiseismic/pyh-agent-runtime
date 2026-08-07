@@ -209,14 +209,14 @@ tests/unit/platform_service/test_message_gateway.py` 全绿（仅覆盖
 立即拒绝且不产生任何出站回调；对同一渠道标识+同一外部消息 ID 投递
 两次，验证只触发一次处理与一次回调
 
-- [ ] T012 [US2] 在 tests/unit/platform_service/test_message_gateway.py
+- [X] T012 [US2] 在 tests/unit/platform_service/test_message_gateway.py
       补充：`handle_inbound()` 对未配置的 `channel_id` 抛
       `ChannelNotFoundError`，且断言 stub `AgentService`/回调记录器均
       未被调用（验收场景 US2-1）；对同一 `channel_id`+
       `external_message_id` 连续调用两次 `handle_inbound()`，验证
       第二次返回 `duplicate=True`，`wait_for_background_tasks()` 后
       回调记录器只收到一条记录（验收场景 US2-2）
-- [ ] T013 [P] [US2] 在 tests/unit/platform_service/test_app_messages.py
+- [X] T013 [P] [US2] 在 tests/unit/platform_service/test_app_messages.py
       补充：`channel_id` 不在配置中的请求返回 404，且响应中不包含
       任何后台处理触发的痕迹（用会在被调用时抛出断言错误的哨兵
       `agent_service` 双重验证）；请求体缺少 `text` 字段返回 422；
