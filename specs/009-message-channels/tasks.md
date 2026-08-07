@@ -260,20 +260,20 @@ tests/unit/platform_service/test_message_gateway.py` 全绿（仅覆盖
 
 **Purpose**: 演示脚本、示例配置、文档收尾与最终验证
 
-- [ ] T016 [P] 扩展 examples/platform_config.example.json：新增
+- [X] T016 [P] 扩展 examples/platform_config.example.json：新增
       `channels`（至少一个渠道实例）、`callback_timeout_seconds`、
       `callback_max_retries` 字段示例
-- [ ] T017 [P] 创建演示脚本 examples/demo_message_gateway.py：复用
+- [X] T017 [P] 创建演示脚本 examples/demo_message_gateway.py：复用
       T016 的示例配置结构（provider 替换为 stub，出站回调替换为回调
       记录器，避免需要真实网络），依次演示成功投递+异步回调、渠道
       未识别、重复投递、内核失败四个场景，打印每个场景的接入响应与
       （如适用）收到的回调 payload
-- [ ] T018 按 quickstart.md 全流程验证：
+- [X] T018 按 quickstart.md 全流程验证：
       `pytest tests/unit/platform_service -v` 全绿（含新增的
       `test_message_gateway.py`/`test_app_messages.py`/
       `test_message_gateway_telemetry.py`）→ demo 脚本输出符合预期 →
       修复发现的问题
-- [ ] T019 更新 README.md roadmap：009 状态改为"✅ 已完成"；更新
+- [X] T019 更新 README.md roadmap：009 状态改为"✅ 已完成"；更新
       examples/README.md 追加 `demo_message_gateway.py` 条目
 
 ---

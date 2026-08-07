@@ -13,5 +13,14 @@
     "azure-gpt4o-mini": {"input_per_1k_usd": 0.00015, "output_per_1k_usd": 0.0006}
   },
   "session_memory_db_path": "platform_sessions.db",
-  "long_term_memory_db_path": "platform_long_term.db"
+  "long_term_memory_db_path": "platform_long_term.db",
+  "channels": [
+    {
+      "channel_id": "demo-channel",
+      "tenant_id": "tenant-demo",
+      "callback_url": "https://your-callback-endpoint.example/receive"
+    }
+  ],
+  "callback_timeout_seconds": 10.0,
+  "callback_max_retries": 3
 }
