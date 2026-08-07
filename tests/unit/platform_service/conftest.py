@@ -8,7 +8,7 @@ import httpx
 import pytest
 
 from kernel.provider import LLMProvider, ModelPrice, PriceTable
-from platform_service.config import PlatformConfig, TenantConfig
+from platform_service.config import ChannelConfig, PlatformConfig, TenantConfig
 
 MODEL = "platform-test-model"
 
@@ -68,6 +68,37 @@ def erroring_provider(exc: Exception) -> LLMProvider:
         price_table=PriceTable(prices={MODEL: ModelPrice(0.01, 0.03)}),
         transport=httpx.MockTransport(handler),
     )
+
+
+@pytest.fixture
+def channel_config() -> ChannelConfig:
+    return ChannelConfig(
+        channel_id="demo-channel",
+        tenant_id="tenant-a",
+        callback_url="http://callback.test/receive",
+    )
+
+
+def recording_callback_client() -> tuple[httpx.AsyncClient, list[dict]]:
+    """返回一个记录每次收到的回调 JSON body 的 httpx.AsyncClient（复用
+    httpx.MockTransport 模式）。"""
+    received: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        received.append(json.loads(request.content))
+        return httpx.Response(200, json={"ok": True})
+
+    return httpx.AsyncClient(transport=httpx.MockTransport(handler)), received
+
+
+def failing_callback_client(call_counter: list[int]) -> httpx.AsyncClient:
+    """恒定失败的回调 client，call_counter[0] 记录被调用次数。"""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        call_counter.append(1)
+        return httpx.Response(500, json={"error": "callback endpoint down"})
+
+    return httpx.AsyncClient(transport=httpx.MockTransport(handler))
 
 
 @pytest.fixture

@@ -41,7 +41,7 @@ Structure Decision。
 
 **Purpose**: 测试公共设施准备（无新增第三方依赖）
 
-- [ ] T001 扩展 tests/unit/platform_service/conftest.py：新增
+- [X] T001 扩展 tests/unit/platform_service/conftest.py：新增
       `channel_config` fixture（`ChannelConfig(channel_id="demo-channel",
       tenant_id="tenant-a", callback_url="http://callback.test/receive")`，
       复用 `platform_config` fixture 所属的 `tenant-a` 租户）；新增
@@ -61,7 +61,7 @@ Structure Decision。
 
 **⚠️ CRITICAL**: 本阶段完成前任何用户故事不能开工
 
-- [ ] T002 扩展 src/platform_service/config.py：新增 `ChannelConfig`
+- [X] T002 扩展 src/platform_service/config.py：新增 `ChannelConfig`
       （frozen dataclass：`channel_id`/`tenant_id`/`callback_url` 非空
       校验，`callback_secret: str | None = None`）；`PlatformConfig`
       新增字段 `channels: list[ChannelConfig] = field(default_factory=list)`、
@@ -71,19 +71,19 @@ Structure Decision。
       相应解析 `channels`/`callback_timeout_seconds`/`callback_max_retries`
       （均可选，缺省使用默认值，保持对 007/008 已有配置文件的向后兼容，
       data-model.md）
-- [ ] T003 [P] 扩展 src/platform_service/errors.py：新增
+- [X] T003 [P] 扩展 src/platform_service/errors.py：新增
       `ChannelNotFoundError(channel_id)`（独立于内核异常层级，同
       `AuthenticationError` 等既有平台异常风格）
-- [ ] T004 [P] 扩展 src/platform_service/models.py：新增 pydantic
+- [X] T004 [P] 扩展 src/platform_service/models.py：新增 pydantic
       `InboundMessage`（`channel_id`/`external_message_id`/`sender`/
       `text` 非空必填，`conversation_id: str | None = None`）、
       `InboundAcceptResult`（`accepted: bool`, `duplicate: bool`）
-- [ ] T005 [P] 创建 src/platform_service/message_gateway.py 骨架：
+- [X] T005 [P] 创建 src/platform_service/message_gateway.py 骨架：
       `ProcessedMessageRegistry` 类——内部 `asyncio.Lock` 保护的
       `set[tuple[str, str]]`；`async def check_and_mark(channel_id,
       external_message_id) -> bool`（锁内原子"查重+标记"，首次见到
       返回 `True`，重复返回 `False`，data-model.md/research.md R4）
-- [ ] T006 [P] 配置/去重registry 单元测试
+- [X] T006 [P] 配置/去重registry 单元测试
       tests/unit/platform_service/test_config.py（扩展）：`ChannelConfig`
       非空字段校验、`channels` 重复 `channel_id` 拒绝、
       `callback_timeout_seconds`/`callback_max_retries` ≤0 拒绝、
@@ -112,7 +112,7 @@ tests/unit/platform_service/test_message_gateway.py` 全绿（仅覆盖
 响应延迟不受慢 provider 影响；用一个恒定失败的回调 client 验证有限次
 重试后不向上抛出异常（FR-008）
 
-- [ ] T007 [US1] 在 src/platform_service/message_gateway.py 实现
+- [X] T007 [US1] 在 src/platform_service/message_gateway.py 实现
       `MessageGateway` 类与 `build_message_gateway()`：
       `__init__(self, *, agent_service, channels: list[ChannelConfig],
       callback_client, callback_timeout_seconds, callback_max_retries)`
@@ -152,7 +152,7 @@ tests/unit/platform_service/test_message_gateway.py` 全绿（仅覆盖
       `callback_client` 时构造
       `httpx.AsyncClient(timeout=config.callback_timeout_seconds)`
       （生产路径）
-- [ ] T008 [US1] 扩展 src/platform_service/app.py：lifespan 中
+- [X] T008 [US1] 扩展 src/platform_service/app.py：lifespan 中
       （`agent_service is None` 分支）额外构建
       `app.state.message_gateway = await build_message_gateway(config,
       agent_service=app.state.agent_service)`；测试注入路径新增
@@ -163,10 +163,10 @@ tests/unit/platform_service/test_message_gateway.py` 全绿（仅覆盖
       `ChannelNotFoundError` 映射 404 → 成功返回 202
       `InboundAcceptResult`；不改动既有 `/v1/agent/run` 端点的任何行为
       （contracts/message-gateway-api.md）
-- [ ] T009 [US1] 包级导出 src/platform_service/__init__.py 追加：
+- [X] T009 [US1] 包级导出 src/platform_service/__init__.py 追加：
       `ChannelConfig`、`InboundMessage`、`InboundAcceptResult`、
       `MessageGateway`、`build_message_gateway`、`ChannelNotFoundError`
-- [ ] T010 [P] [US1] MessageGateway 端到端单元测试
+- [X] T010 [P] [US1] MessageGateway 端到端单元测试
       tests/unit/platform_service/test_message_gateway.py（扩展）：
       成功场景——stub provider + 回调记录器驱动 `handle_inbound()`，
       验证立即返回 `InboundAcceptResult(accepted=True,
@@ -185,7 +185,7 @@ tests/unit/platform_service/test_message_gateway.py` 全绿（仅覆盖
       `_process_and_callback()` 全程不向上抛出任何异常（后台任务
       `task.exception()` 为 `None`）、且产生一条 `logger.warning` 记录
       （用 `caplog` 断言日志内容包含"回调"/"failed"等关键字）
-- [ ] T011 [P] [US1] FastAPI 端到端单元测试
+- [X] T011 [P] [US1] FastAPI 端到端单元测试
       tests/unit/platform_service/test_app_messages.py（新建）：用
       `httpx.AsyncClient(transport=httpx.ASGITransport(app=app))` 驱动
       `POST /v1/messages/inbound`——合法请求立即返回 202 且

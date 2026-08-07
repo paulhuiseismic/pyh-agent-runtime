@@ -9,22 +9,33 @@ from platform_service.auth import resolve_tenant
 from platform_service.config import PlatformConfig, load_config_from_file
 from platform_service.errors import (
     AuthenticationError,
+    ChannelNotFoundError,
     ConcurrencyLimitExceededError,
     RequestTimeoutError,
 )
-from platform_service.models import AgentRunRequest, AgentRunResult
+from platform_service.message_gateway import MessageGateway, build_message_gateway
+from platform_service.models import (
+    AgentRunRequest,
+    AgentRunResult,
+    InboundAcceptResult,
+    InboundMessage,
+)
 from platform_service.scheduler import ConcurrencyScheduler
 from platform_service.telemetry import platform_request_span
 
 
 def create_app(
-    config: PlatformConfig, *, agent_service: AgentService | None = None
+    config: PlatformConfig,
+    *,
+    agent_service: AgentService | None = None,
+    message_gateway: MessageGateway | None = None,
 ) -> FastAPI:
     """构建平台 REST 应用。
 
-    agent_service 由调用方（测试）预先构建时直接使用（同步注入，便于用 stub
-    provider 驱动）；未提供时通过 FastAPI lifespan 在应用启动阶段按 config
-    构建一次（生产路径，research.md R4）。
+    agent_service/message_gateway 由调用方（测试）预先构建时直接使用
+    （同步注入，便于用 stub provider/回调记录器驱动）；未提供时通过
+    FastAPI lifespan 在应用启动阶段按 config 构建一次（生产路径，
+    research.md R4；009 message_gateway 同一 lifespan 内构建）。
     """
     lifespan = None
     if agent_service is None:
@@ -32,6 +43,9 @@ def create_app(
         @asynccontextmanager
         async def _lifespan(app: FastAPI):
             app.state.agent_service = await build_agent_service(config)
+            app.state.message_gateway = await build_message_gateway(
+                config, agent_service=app.state.agent_service
+            )
             yield
 
         lifespan = _lifespan
@@ -39,6 +53,7 @@ def create_app(
     app = FastAPI(lifespan=lifespan)
     app.state.config = config
     app.state.agent_service = agent_service
+    app.state.message_gateway = message_gateway
     app.state.scheduler = ConcurrencyScheduler(config)
 
     @app.post("/v1/agent/run", response_model=AgentRunResult)
@@ -84,6 +99,16 @@ def create_app(
                 return result
             finally:
                 scheduler.release(tenant_id)
+
+    @app.post(
+        "/v1/messages/inbound", response_model=InboundAcceptResult, status_code=202
+    )
+    async def receive_message(message: InboundMessage) -> InboundAcceptResult:
+        gateway: MessageGateway = app.state.message_gateway
+        try:
+            return await gateway.handle_inbound(message)
+        except ChannelNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     return app
 

@@ -6,24 +6,37 @@
 from platform_service.agent_service import AgentService, build_agent_service
 from platform_service.app import create_app
 from platform_service.cli import main as cli_main
-from platform_service.config import PlatformConfig, TenantConfig
+from platform_service.config import ChannelConfig, PlatformConfig, TenantConfig
 from platform_service.errors import (
     AuthenticationError,
+    ChannelNotFoundError,
     ConcurrencyLimitExceededError,
     RequestTimeoutError,
 )
-from platform_service.models import AgentRunRequest, AgentRunResult
+from platform_service.message_gateway import MessageGateway, build_message_gateway
+from platform_service.models import (
+    AgentRunRequest,
+    AgentRunResult,
+    InboundAcceptResult,
+    InboundMessage,
+)
 
 __all__ = [
     "AgentService",
     "build_agent_service",
     "create_app",
     "cli_main",
+    "ChannelConfig",
     "PlatformConfig",
     "TenantConfig",
     "AgentRunRequest",
     "AgentRunResult",
+    "InboundMessage",
+    "InboundAcceptResult",
+    "MessageGateway",
+    "build_message_gateway",
     "AuthenticationError",
+    "ChannelNotFoundError",
     "ConcurrencyLimitExceededError",
     "RequestTimeoutError",
 ]

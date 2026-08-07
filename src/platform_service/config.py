@@ -25,6 +25,22 @@ class TenantConfig:
 
 
 @dataclass(frozen=True)
+class ChannelConfig:
+    channel_id: str
+    tenant_id: str
+    callback_url: str
+    callback_secret: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.channel_id:
+            raise InvalidRequestError("channel.channel_id 必填且不能为空")
+        if not self.tenant_id:
+            raise InvalidRequestError("channel.tenant_id 必填且不能为空")
+        if not self.callback_url:
+            raise InvalidRequestError("channel.callback_url 必填且不能为空")
+
+
+@dataclass(frozen=True)
 class PlatformConfig:
     tenants: list[TenantConfig]
     global_max_concurrent_requests: int
@@ -38,6 +54,9 @@ class PlatformConfig:
     mcp_servers: list[McpServerConfig] = field(default_factory=list)
     session_memory_db_path: str = "platform_sessions.db"
     long_term_memory_db_path: str = "platform_long_term.db"
+    channels: list[ChannelConfig] = field(default_factory=list)
+    callback_timeout_seconds: float = 10.0
+    callback_max_retries: int = 3
 
     def __post_init__(self) -> None:
         if self.global_max_concurrent_requests <= 0:
@@ -71,6 +90,20 @@ class PlatformConfig:
         if len(tenant_ids) != len(set(tenant_ids)):
             raise InvalidRequestError("tenants 中存在重复的 tenant_id")
 
+        if self.callback_timeout_seconds <= 0:
+            raise InvalidRequestError(
+                "platform.callback_timeout_seconds 必须 > 0，"
+                f"收到: {self.callback_timeout_seconds!r}"
+            )
+        if self.callback_max_retries <= 0:
+            raise InvalidRequestError(
+                f"platform.callback_max_retries 必须 > 0，"
+                f"收到: {self.callback_max_retries!r}"
+            )
+        channel_ids = [c.channel_id for c in self.channels]
+        if len(channel_ids) != len(set(channel_ids)):
+            raise InvalidRequestError("channels 中存在重复的 channel_id")
+
 
 def load_config_from_file(path: str) -> PlatformConfig:
     """从 JSON 配置文件加载 PlatformConfig（供 `uvicorn platform_service.app:app`
@@ -95,6 +128,15 @@ def load_config_from_file(path: str) -> PlatformConfig:
             for model, price in raw["price_table"].items()
         }
     )
+    channels = [
+        ChannelConfig(
+            channel_id=c["channel_id"],
+            tenant_id=c["tenant_id"],
+            callback_url=c["callback_url"],
+            callback_secret=c.get("callback_secret"),
+        )
+        for c in raw.get("channels", [])
+    ]
     return PlatformConfig(
         tenants=tenants,
         global_max_concurrent_requests=raw["global_max_concurrent_requests"],
@@ -108,4 +150,7 @@ def load_config_from_file(path: str) -> PlatformConfig:
         long_term_memory_db_path=raw.get(
             "long_term_memory_db_path", "platform_long_term.db"
         ),
+        channels=channels,
+        callback_timeout_seconds=raw.get("callback_timeout_seconds", 10.0),
+        callback_max_retries=raw.get("callback_max_retries", 3),
     )
