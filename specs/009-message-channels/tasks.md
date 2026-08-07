@@ -238,13 +238,13 @@ tests/unit/platform_service/test_message_gateway.py` 全绿（仅覆盖
 `tenant_id`；连续投递两条共享 `conversation_id` 的消息，验证第二条的
 回调 `answer` 体现第一条积累的上下文
 
-- [ ] T014 [P] [US3] 创建 tests/unit/platform_service/test_message_gateway_telemetry.py：
+- [X] T014 [P] [US3] 创建 tests/unit/platform_service/test_message_gateway_telemetry.py：
       用 `InMemorySpanExporter` 驱动 `handle_inbound()` 的成功场景，
       `await gateway.wait_for_background_tasks()` 后断言
       `platform.request` span 携带正确 `tenant_id`，其下 `react.step`/
       `chat {model}` 子 span 与之 trace_id 一致、父子关系正确（复用
       007/008 已确立的断言风格，验收场景 US3-2）
-- [ ] T015 [P] [US3] 在 tests/unit/platform_service/test_message_gateway.py
+- [X] T015 [P] [US3] 在 tests/unit/platform_service/test_message_gateway.py
       补充：连续两次调用 `handle_inbound()`（相同 `channel_id`+
       `conversation_id`、不同 `external_message_id`），每次调用后
       `await wait_for_background_tasks()`，验证第二次回调记录器收到

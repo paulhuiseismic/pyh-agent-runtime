@@ -1,10 +1,13 @@
 import asyncio
 import dataclasses
+import json
 
+import httpx
 import pytest
 
 from kernel.memory import SqliteMemory
 from kernel.memory.long_term import LongTermMemory
+from kernel.provider import LLMProvider
 from kernel.tool import ToolRegistry
 from platform_service.agent_service import AgentService
 from platform_service.errors import ChannelNotFoundError
@@ -205,6 +208,55 @@ async def test_handle_inbound_duplicate_delivery_only_processed_once(
         assert first.duplicate is False
         assert second.duplicate is True
         assert len(received) == 1
+    finally:
+        await session_memory.aclose()
+        await long_term_memory.aclose()
+        await callback_client.aclose()
+
+
+async def test_conversation_continuity_across_messages(platform_config, channel_config):
+    """两条消息共享同一 conversation_id 时，第二条的处理结果体现第一条
+    积累的会话上下文（复用 003 会话记忆，US3 验收场景 1）。"""
+    call_count = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal call_count
+        call_count += 1
+        answer = "我记得你叫小明" if call_count > 1 else "好的"
+        content = json.dumps({"action": "final_answer", "content": answer})
+        return httpx.Response(
+            200,
+            json={
+                "model": platform_config.model,
+                "choices": [
+                    {"message": {"role": "assistant", "content": content}, "finish_reason": "stop"}
+                ],
+                "usage": {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
+            },
+        )
+
+    provider = LLMProvider(
+        base_url="http://stub",
+        price_table=platform_config.price_table,
+        transport=httpx.MockTransport(handler),
+    )
+    callback_client, received = recording_callback_client()
+    gateway, session_memory, long_term_memory = await _build_gateway(
+        platform_config, channel_config, provider, callback_client
+    )
+    try:
+        await gateway.handle_inbound(
+            _message(external_message_id="msg-1", conversation_id="conv-1", text="我叫小明")
+        )
+        await gateway.wait_for_background_tasks()
+
+        await gateway.handle_inbound(
+            _message(external_message_id="msg-2", conversation_id="conv-1", text="我叫什么名字？")
+        )
+        await gateway.wait_for_background_tasks()
+
+        assert len(received) == 2
+        assert received[1]["answer"] == "我记得你叫小明"
     finally:
         await session_memory.aclose()
         await long_term_memory.aclose()
