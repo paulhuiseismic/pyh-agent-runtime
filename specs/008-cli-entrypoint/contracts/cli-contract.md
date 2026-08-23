@@ -43,6 +43,7 @@ script 名称；开发环境下等价于
 | `4` | `EXIT_VALIDATION_FAILED` | `goal` 为空字符串 | 否 |
 | `5` | `EXIT_TIMEOUT` | 处理耗时超过 `PlatformConfig.request_timeout_seconds` | 是（已发起，未完成） |
 | `6` | `EXIT_KERNEL_ERROR` | `AgentService.handle()` 抛出未归类的内核异常 | 是 |
+| `7` | `EXIT_QUOTA_EXCEEDED` | 租户当日累计成本达到 010 配置的 `daily_cost_quota_usd`（见 specs/010-multitenant-audit/contracts/audit-api.md） | 否 |
 
 CLI 不复用 007 的 `ConcurrencyScheduler`，因此不存在
 `EXIT_CONCURRENCY_EXCEEDED`——单进程单次调用没有真实的并发上限场景

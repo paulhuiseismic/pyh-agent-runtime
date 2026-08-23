@@ -127,7 +127,7 @@ tests/unit/platform_service/test_audit.py` 全绿
 审计记录；用一个恒定失败的 `AuditStore` 驱动一次请求，验证原始请求
 仍正常返回结果
 
-- [ ] T007 [US1] 扩展 src/platform_service/agent_service.py：
+- [X] T007 [US1] 扩展 src/platform_service/agent_service.py：
       `build_agent_service()` 额外构造
       `AuditStore(config.audit_db_path)` 并传入
       `AgentService(..., audit_store=...)`；`AgentService.__init__`
@@ -155,12 +155,12 @@ tests/unit/platform_service/test_audit.py` 全绿
       非空，同样 best-effort 记录 `status="failure"`（用量字段
       使用异常发生前包装器已累加的部分用量），随后重新抛出原异常
       （不改变对外可见的异常传播行为）
-- [ ] T008 [US1] 在三个入口各自调用 `service.handle(...)` 的位置
+- [X] T008 [US1] 在三个入口各自调用 `service.handle(...)` 的位置
       补充 `source` 参数：src/platform_service/app.py
       （`source="rest"`）、src/platform_service/cli.py
       （`source="cli"`）、src/platform_service/message_gateway.py
       （`source="message_gateway"`）
-- [ ] T009 [P] [US1] AgentService 审计记录单元测试
+- [X] T009 [P] [US1] AgentService 审计记录单元测试
       tests/unit/platform_service/test_agent_service.py（扩展）：
       成功调用后 `audit_store` 中有一条 `status="success"` 记录，
       `input_tokens`/`output_tokens`/`cost_usd` 与 stub provider
@@ -171,14 +171,14 @@ tests/unit/platform_service/test_audit.py` 全绿
       （向后兼容性验证）；用 `broken_audit_store()` 驱动一次成功
       调用，验证 `handle()` 仍正常返回 `AgentRunResult`（验收
       场景 US1-3，`caplog` 断言产生一条警告日志）
-- [ ] T010 [P] [US1] 在 tests/unit/platform_service/test_app_messages.py
+- [X] T010 [P] [US1] 在 tests/unit/platform_service/test_app_messages.py
       补充：一次成功的 `/v1/agent/run` 调用（注入真实
       `audit_store` fixture 的 `AgentService`）后，`audit_store`
       中存在一条 `source="rest"` 的记录
-- [ ] T011 [P] [US1] 在 tests/unit/platform_service/test_cli.py
+- [X] T011 [P] [US1] 在 tests/unit/platform_service/test_cli.py
       补充：一次成功的 `cli.run()` 调用后，注入的 `audit_store`
       中存在一条 `source="cli"` 的记录
-- [ ] T012 [P] [US1] 在 tests/unit/platform_service/test_message_gateway.py
+- [X] T012 [P] [US1] 在 tests/unit/platform_service/test_message_gateway.py
       补充：一次成功的 `handle_inbound()` 调用后，注入的
       `audit_store` 中存在一条 `source="message_gateway"` 的记录
 
@@ -196,7 +196,7 @@ REST 接口
 记录，对覆盖这些记录时间戳的范围发起查询，验证返回的汇总与预期
 一致；对无记录的时间范围查询，验证返回全零汇总而非错误
 
-- [ ] T013 [US2] 在 src/platform_service/app.py 新增
+- [X] T013 [US2] 在 src/platform_service/app.py 新增
       `GET /v1/audit/usage` 端点：读取 `X-API-Key` 请求头 →
       `resolve_tenant`（失败映射 401，复用既有逻辑）→ 解析可选
       query 参数 `start`/`end`（ISO8601 字符串，解析失败映射 422；
@@ -207,7 +207,7 @@ REST 接口
       解析出的调用方自身租户）；需要将 `AgentService` 的
       `audit_store` 通过一个只读属性暴露（如
       `AgentService.audit_store` property）供 `app.py` 访问
-- [ ] T014 [P] [US2] 创建 tests/unit/platform_service/test_app_audit.py：
+- [X] T014 [P] [US2] 创建 tests/unit/platform_service/test_app_audit.py：
       预先通过 `audit_store` 写入已知的若干条记录 → `GET
       /v1/audit/usage` 携带覆盖这些记录的 `start`/`end` → 验证
       返回汇总与预期一致（验收场景 US2-1）；查询一个无记录的时间
@@ -230,7 +230,7 @@ provider 驱动若干次请求使累计成本达到配额，再发起下一次�
 被拒绝且未触发任何内核调用（哨兵 provider 验证）；未配置配额的租户
 不受影响
 
-- [ ] T015 [US3]（`/speckit-analyze` F1 修正后的设计）在
+- [X] T015 [US3]（`/speckit-analyze` F1 修正后的设计）在
       src/platform_service/agent_service.py 新增内部类
       `QuotaLockRegistry`（与既有 `SessionLockRegistry` 完全同
       写法，按 `tenant_id` 惰性创建/复用 `asyncio.Lock`）；改造
@@ -247,18 +247,18 @@ provider 驱动若干次请求使累计成本达到配额，再发起下一次�
       零点)` 达到或超过配额时抛
       `QuotaExceededError(tenant_id, quota_usd)`（在加载会话历史/
       构造 `ReactEngine` 之前，不触发任何内核调用，FR-007）
-- [ ] T016 [US3] 在 src/platform_service/app.py 的 `/v1/agent/run`
+- [X] T016 [US3] 在 src/platform_service/app.py 的 `/v1/agent/run`
       端点新增 `except QuotaExceededError` 分支——
       `span.set_result("quota_exceeded")`，映射 HTTP 402（区别于
       429/502/504，contracts/audit-api.md）
-- [ ] T017 [P] [US3] 在 src/platform_service/cli.py 新增退出码常量
+- [X] T017 [P] [US3] 在 src/platform_service/cli.py 新增退出码常量
       `EXIT_QUOTA_EXCEEDED = 7`（追加，不重排 008 已发布的既有
       数值）；`run()` 新增 `except QuotaExceededError` 分支
-- [ ] T018 [P] [US3] 在 src/platform_service/message_gateway.py 的
+- [X] T018 [P] [US3] 在 src/platform_service/message_gateway.py 的
       `_process_and_callback()` 新增 `except QuotaExceededError`
       分支——出站回调 payload `status="quota_exceeded"`（复用既有
       `status`/`error` 字段结构）
-- [ ] T019 [P] [US3] 在 tests/unit/platform_service/test_agent_service.py
+- [X] T019 [P] [US3] 在 tests/unit/platform_service/test_agent_service.py
       补充：用 `platform_config_with_quota` 与预先写入的审计记录
       使某租户当日累计成本达到配额，验证 `handle()` 抛
       `QuotaExceededError`，且断言 stub provider/`ReactEngine`
@@ -279,11 +279,11 @@ provider 驱动若干次请求使累计成本达到配额，再发起下一次�
       窗口起点)` 与 `audit_store.query_usage(tenant_id, 窗口起点,
       now).total_cost_usd` 两者数值相等（SC-007，证明配额检查与
       查询端点确实共享同一份数据、口径一致）
-- [ ] T020 [P] [US3] 在 tests/unit/platform_service/test_app_audit.py
+- [X] T020 [P] [US3] 在 tests/unit/platform_service/test_app_audit.py
       补充：租户当日累计成本达到配额后，`/v1/agent/run` 返回 402
-- [ ] T021 [P] [US3] 在 tests/unit/platform_service/test_cli.py
+- [X] T021 [P] [US3] 在 tests/unit/platform_service/test_cli.py
       补充：配额超限场景返回 `EXIT_QUOTA_EXCEEDED`
-- [ ] T022 [P] [US3] 在 tests/unit/platform_service/test_message_gateway.py
+- [X] T022 [P] [US3] 在 tests/unit/platform_service/test_message_gateway.py
       补充：配额超限场景的出站回调 `status="quota_exceeded"`
 
 **Checkpoint**: US1-US3 测试全绿——审计记录、查询、配额强化三项

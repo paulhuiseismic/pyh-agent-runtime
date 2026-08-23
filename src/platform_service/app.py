@@ -1,8 +1,11 @@
 import asyncio
 import os
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, Header, HTTPException
+
+from platform_service.audit import UsageSummary
 
 from platform_service.agent_service import AgentService, build_agent_service
 from platform_service.auth import resolve_tenant
@@ -11,6 +14,7 @@ from platform_service.errors import (
     AuthenticationError,
     ChannelNotFoundError,
     ConcurrencyLimitExceededError,
+    QuotaExceededError,
     RequestTimeoutError,
 )
 from platform_service.message_gateway import MessageGateway, build_message_gateway
@@ -81,7 +85,7 @@ def create_app(
                 service: AgentService = app.state.agent_service
                 try:
                     result = await asyncio.wait_for(
-                        service.handle(request, tenant_id=tenant_id),
+                        service.handle(request, tenant_id=tenant_id, source="rest"),
                         timeout=config.request_timeout_seconds,
                     )
                 except asyncio.TimeoutError as exc:
@@ -90,6 +94,9 @@ def create_app(
                         status_code=504,
                         detail=str(RequestTimeoutError(config.request_timeout_seconds)),
                     ) from exc
+                except QuotaExceededError as exc:
+                    span.set_result("quota_exceeded")
+                    raise HTTPException(status_code=402, detail=str(exc)) from exc
                 except Exception as exc:
                     span.set_result("kernel_error")
                     raise HTTPException(
@@ -109,6 +116,24 @@ def create_app(
             return await gateway.handle_inbound(message)
         except ChannelNotFoundError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @app.get("/v1/audit/usage", response_model=UsageSummary)
+    async def get_usage(
+        start: datetime | None = None,
+        end: datetime | None = None,
+        x_api_key: str | None = Header(default=None),
+    ) -> UsageSummary:
+        try:
+            tenant_id = resolve_tenant(x_api_key, config)
+        except AuthenticationError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+        now = datetime.now(timezone.utc)
+        range_start = start or now.replace(hour=0, minute=0, second=0, microsecond=0)
+        range_end = end or now
+
+        service: AgentService = app.state.agent_service
+        return await service.audit_store.query_usage(tenant_id, range_start, range_end)
 
     return app
 

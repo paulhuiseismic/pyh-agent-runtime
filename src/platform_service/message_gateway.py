@@ -12,7 +12,7 @@ import logging
 import httpx
 
 from platform_service.config import ChannelConfig, PlatformConfig
-from platform_service.errors import ChannelNotFoundError
+from platform_service.errors import ChannelNotFoundError, QuotaExceededError
 from platform_service.models import AgentRunRequest, InboundAcceptResult, InboundMessage
 from platform_service.telemetry import platform_request_span
 
@@ -127,6 +127,7 @@ class MessageGateway:
                             goal=message.text, session_id=message.conversation_id
                         ),
                         tenant_id=channel.tenant_id,
+                        source="message_gateway",
                     ),
                     timeout=self._request_timeout_seconds,
                 )
@@ -137,6 +138,10 @@ class MessageGateway:
                     f"request processing timed out after "
                     f"{self._request_timeout_seconds}s"
                 )
+            except QuotaExceededError as exc:
+                span.set_result("quota_exceeded")
+                payload["status"] = "quota_exceeded"
+                payload["error"] = str(exc)
             except Exception as exc:
                 span.set_result("kernel_error")
                 payload["status"] = "kernel_error"

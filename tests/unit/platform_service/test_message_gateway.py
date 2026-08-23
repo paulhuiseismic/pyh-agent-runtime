@@ -52,7 +52,7 @@ async def test_check_and_mark_concurrent_calls_only_one_succeeds():
     assert sum(1 for r in results if r) == 1
 
 
-async def _build_gateway(platform_config, channel_config, provider, callback_client):
+async def _build_gateway(platform_config, channel_config, provider, callback_client, audit_store=None):
     session_memory = SqliteMemory(db_path=":memory:", provider=provider, model=platform_config.model)
     long_term_memory = LongTermMemory(
         db_path=":memory:", provider=provider, model=platform_config.model
@@ -63,6 +63,7 @@ async def _build_gateway(platform_config, channel_config, provider, callback_cli
         session_memory=session_memory,
         long_term_memory=long_term_memory,
         config=platform_config,
+        audit_store=audit_store,
     )
     config_with_channel = dataclasses.replace(platform_config, channels=[channel_config])
     gateway = await build_message_gateway(
@@ -257,6 +258,70 @@ async def test_conversation_continuity_across_messages(platform_config, channel_
 
         assert len(received) == 2
         assert received[1]["answer"] == "我记得你叫小明"
+    finally:
+        await session_memory.aclose()
+        await long_term_memory.aclose()
+        await callback_client.aclose()
+
+
+async def test_handle_inbound_success_records_audit_entry_with_message_gateway_source(
+    platform_config, channel_config, audit_store
+):
+    callback_client, received = recording_callback_client()
+    gateway, session_memory, long_term_memory = await _build_gateway(
+        platform_config, channel_config, stub_provider("42"), callback_client, audit_store=audit_store
+    )
+    try:
+        await gateway.handle_inbound(_message())
+        await gateway.wait_for_background_tasks()
+
+        conn = await audit_store._get_conn()
+        cursor = await conn.execute("SELECT tenant_id, source FROM audit_entries")
+        rows = await cursor.fetchall()
+        assert rows == [("tenant-a", "message_gateway")]
+    finally:
+        await session_memory.aclose()
+        await long_term_memory.aclose()
+        await callback_client.aclose()
+
+
+async def test_handle_inbound_quota_exceeded_reports_via_callback(
+    platform_config, channel_config, audit_store
+):
+    import dataclasses
+    from datetime import datetime, timezone
+
+    from platform_service.audit import AuditEntry
+
+    quota_config = dataclasses.replace(
+        platform_config,
+        tenants=[
+            dataclasses.replace(t, daily_cost_quota_usd=0.0001) if t.tenant_id == "tenant-a" else t
+            for t in platform_config.tenants
+        ],
+    )
+    await audit_store.record(
+        AuditEntry(
+            tenant_id="tenant-a",
+            source="message_gateway",
+            timestamp=datetime.now(timezone.utc),
+            input_tokens=100,
+            output_tokens=100,
+            cost_usd=1.0,
+            status="success",
+        )
+    )
+
+    callback_client, received = recording_callback_client()
+    gateway, session_memory, long_term_memory = await _build_gateway(
+        quota_config, channel_config, stub_provider("42"), callback_client, audit_store=audit_store
+    )
+    try:
+        await gateway.handle_inbound(_message())
+        await gateway.wait_for_background_tasks()
+
+        assert len(received) == 1
+        assert received[0]["status"] == "quota_exceeded"
     finally:
         await session_memory.aclose()
         await long_term_memory.aclose()

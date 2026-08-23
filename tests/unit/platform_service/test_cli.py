@@ -37,7 +37,7 @@ def test_resolve_api_key_present():
     assert cli.resolve_api_key({"PLATFORM_SERVICE_API_KEY": "k"}) == "k"
 
 
-async def _build_service(config, provider):
+async def _build_service(config, provider, audit_store=None):
     session_memory = SqliteMemory(
         db_path=":memory:", provider=provider, model=config.model
     )
@@ -51,6 +51,7 @@ async def _build_service(config, provider):
             session_memory=session_memory,
             long_term_memory=long_term_memory,
             config=config,
+            audit_store=audit_store,
         )
         yield service
     finally:
@@ -212,6 +213,64 @@ async def test_run_empty_goal(platform_config, tmp_path):
         agent_service=_RefusingAgentService(),
     )
     assert exit_code == cli.EXIT_VALIDATION_FAILED
+    assert stdout == ""
+    assert stderr != ""
+
+
+async def test_run_success_records_audit_entry_with_cli_source(
+    platform_config, tmp_path, audit_store
+):
+    config_path = tmp_path / "config.json"
+    _write_config_file(config_path, platform_config)
+
+    async for service in _build_service(platform_config, stub_provider("42"), audit_store=audit_store):
+        await cli.run(
+            ["1+1=?"],
+            {"PLATFORM_SERVICE_API_KEY": "key-a", "PLATFORM_SERVICE_CONFIG": str(config_path)},
+            agent_service=service,
+        )
+
+    conn = await audit_store._get_conn()
+    cursor = await conn.execute("SELECT tenant_id, source FROM audit_entries")
+    rows = await cursor.fetchall()
+    assert rows == [("tenant-a", "cli")]
+
+
+async def test_run_quota_exceeded_returns_exit_code(platform_config, tmp_path, audit_store):
+    import dataclasses
+    from datetime import datetime, timezone
+
+    from platform_service.audit import AuditEntry
+
+    quota_config = dataclasses.replace(
+        platform_config,
+        tenants=[
+            dataclasses.replace(t, daily_cost_quota_usd=0.0001) if t.tenant_id == "tenant-a" else t
+            for t in platform_config.tenants
+        ],
+    )
+    config_path = tmp_path / "config.json"
+    _write_config_file(config_path, quota_config)
+
+    await audit_store.record(
+        AuditEntry(
+            tenant_id="tenant-a",
+            source="cli",
+            timestamp=datetime.now(timezone.utc),
+            input_tokens=100,
+            output_tokens=100,
+            cost_usd=1.0,
+            status="success",
+        )
+    )
+
+    async for service in _build_service(quota_config, stub_provider("42"), audit_store=audit_store):
+        exit_code, stdout, stderr = await cli.run(
+            ["问题"],
+            {"PLATFORM_SERVICE_API_KEY": "key-a", "PLATFORM_SERVICE_CONFIG": str(config_path)},
+            agent_service=service,
+        )
+    assert exit_code == cli.EXIT_QUOTA_EXCEEDED
     assert stdout == ""
     assert stderr != ""
 

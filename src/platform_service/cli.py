@@ -16,7 +16,7 @@ from kernel.provider.errors import InvalidRequestError
 from platform_service.agent_service import AgentService, build_agent_service
 from platform_service.auth import resolve_tenant
 from platform_service.config import load_config_from_file
-from platform_service.errors import AuthenticationError
+from platform_service.errors import AuthenticationError, QuotaExceededError
 from platform_service.models import AgentRunRequest
 from platform_service.telemetry import platform_request_span
 
@@ -27,6 +27,7 @@ EXIT_CONFIG_INVALID = 3
 EXIT_VALIDATION_FAILED = 4
 EXIT_TIMEOUT = 5
 EXIT_KERNEL_ERROR = 6
+EXIT_QUOTA_EXCEEDED = 7
 
 _API_KEY_ENV_VAR = "PLATFORM_SERVICE_API_KEY"
 _CONFIG_ENV_VAR = "PLATFORM_SERVICE_CONFIG"
@@ -102,7 +103,7 @@ async def run(
         with platform_request_span(tenant_id=tenant_id, session_id=args.session_id) as span:
             try:
                 result = await asyncio.wait_for(
-                    service.handle(request, tenant_id=tenant_id),
+                    service.handle(request, tenant_id=tenant_id, source="cli"),
                     timeout=config.request_timeout_seconds,
                 )
             except asyncio.TimeoutError:
@@ -111,6 +112,9 @@ async def run(
                     EXIT_TIMEOUT,
                     f"错误: 请求处理超时（超过 {config.request_timeout_seconds}s）\n",
                 ) from None
+            except QuotaExceededError as exc:
+                span.set_result("quota_exceeded")
+                raise _CliFailure(EXIT_QUOTA_EXCEEDED, f"错误: {exc}\n") from exc
             except Exception as exc:
                 span.set_result("kernel_error")
                 raise _CliFailure(EXIT_KERNEL_ERROR, f"错误: 内核处理失败: {exc}\n") from exc

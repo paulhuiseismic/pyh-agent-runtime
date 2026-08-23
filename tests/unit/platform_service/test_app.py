@@ -21,7 +21,7 @@ def db_paths():
         )
 
 
-async def _build_app(platform_config, db_paths, provider=None):
+async def _build_app(platform_config, db_paths, provider=None, audit_store=None):
     provider = provider or stub_provider("hello world")
     session_memory = SqliteMemory(
         db_path=db_paths[0], provider=provider, model=platform_config.model
@@ -35,6 +35,7 @@ async def _build_app(platform_config, db_paths, provider=None):
         session_memory=session_memory,
         long_term_memory=long_term_memory,
         config=platform_config,
+        audit_store=audit_store,
     )
     try:
         yield create_app(platform_config, agent_service=service)
@@ -103,3 +104,23 @@ async def test_kernel_failure_returns_502(platform_config, db_paths):
                 "/v1/agent/run", headers={"X-API-Key": "key-a"}, json={"goal": "1+1?"}
             )
         assert response.status_code == 502
+
+
+async def test_success_response_records_audit_entry_with_rest_source(
+    platform_config, db_paths, audit_store
+):
+    async for app in _build_app(platform_config, db_paths, audit_store=audit_store):
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.post(
+                "/v1/agent/run",
+                headers={"X-API-Key": "key-a"},
+                json={"goal": "1+1?"},
+            )
+        assert response.status_code == 200
+
+    conn = await audit_store._get_conn()
+    cursor = await conn.execute("SELECT tenant_id, source FROM audit_entries")
+    rows = await cursor.fetchall()
+    assert rows == [("tenant-a", "rest")]
