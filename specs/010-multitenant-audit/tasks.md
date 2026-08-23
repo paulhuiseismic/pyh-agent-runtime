@@ -295,18 +295,18 @@ provider 驱动若干次请求使累计成本达到配额，再发起下一次�
 
 **Purpose**: 示例配置、演示脚本、文档收尾与最终验证
 
-- [ ] T023 [P] 扩展 examples/platform_config.example.json：新增
+- [X] T023 [P] 扩展 examples/platform_config.example.json：新增
       `audit_db_path` 字段与至少一个租户的 `daily_cost_quota_usd`
       字段示例
-- [ ] T024 [P] 创建演示脚本 examples/demo_audit.py：复用 T023 的
+- [X] T024 [P] 创建演示脚本 examples/demo_audit.py：复用 T023 的
       示例配置结构（provider 替换为 stub），依次演示：一次成功调用
       产生审计记录 → 查询该租户的用量汇总 → 反复调用耗尽配额后
       新请求被拒绝，打印每一步的关键输出
-- [ ] T025 按 quickstart.md 全流程验证：
+- [X] T025 按 quickstart.md 全流程验证：
       `pytest tests/unit/platform_service -v` 全绿（含新增的
       `test_audit.py`/`test_app_audit.py`）→ demo 脚本输出符合
       预期 → 修复发现的问题
-- [ ] T026 更新 README.md roadmap：010 状态改为"✅ 已完成"；更新
+- [X] T026 更新 README.md roadmap：010 状态改为"✅ 已完成"；更新
       examples/README.md 追加 `demo_audit.py` 条目
 
 ---

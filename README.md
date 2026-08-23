@@ -55,7 +55,7 @@ token 与成本上限；所有 LLM 调用/tool 执行/消息进出发出 OTel Ge
 | 007 | [平台服务层 + web service（REST API）+ 运行调度](specs/007-platform-web-service/spec.md) | 平台 | ✅ 已完成 |
 | 008 | [CLI 入口（复用平台服务层）](specs/008-cli-entrypoint/spec.md) | 平台 | ✅ 已完成 |
 | 009 | [message 多渠道收发（消息网关）](specs/009-message-channels/spec.md) | 平台 | ✅ 已完成 |
-| 010 | 多租户强化与审计 | 平台 | 待 specify |
+| 010 | [多租户强化与审计（用量/成本审计记录与查询、按租户成本配额）](specs/010-multitenant-audit/spec.md) | 平台 | ✅ 已完成 |
 
 ## 技术基线
 
