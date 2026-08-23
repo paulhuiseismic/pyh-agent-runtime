@@ -11,6 +11,7 @@ class TenantConfig:
     api_key: str
     tenant_id: str
     max_concurrent_requests: int
+    daily_cost_quota_usd: float | None = None
 
     def __post_init__(self) -> None:
         if not self.api_key:
@@ -21,6 +22,11 @@ class TenantConfig:
             raise InvalidRequestError(
                 f"tenant.max_concurrent_requests 必须 > 0，"
                 f"收到: {self.max_concurrent_requests!r}"
+            )
+        if self.daily_cost_quota_usd is not None and self.daily_cost_quota_usd <= 0:
+            raise InvalidRequestError(
+                f"tenant.daily_cost_quota_usd 必须 > 0，"
+                f"收到: {self.daily_cost_quota_usd!r}"
             )
 
 
@@ -57,6 +63,7 @@ class PlatformConfig:
     channels: list[ChannelConfig] = field(default_factory=list)
     callback_timeout_seconds: float = 10.0
     callback_max_retries: int = 3
+    audit_db_path: str = "platform_audit.db"
 
     def __post_init__(self) -> None:
         if self.global_max_concurrent_requests <= 0:
@@ -116,6 +123,7 @@ def load_config_from_file(path: str) -> PlatformConfig:
             api_key=t["api_key"],
             tenant_id=t["tenant_id"],
             max_concurrent_requests=t["max_concurrent_requests"],
+            daily_cost_quota_usd=t.get("daily_cost_quota_usd"),
         )
         for t in raw["tenants"]
     ]
@@ -153,4 +161,5 @@ def load_config_from_file(path: str) -> PlatformConfig:
         channels=channels,
         callback_timeout_seconds=raw.get("callback_timeout_seconds", 10.0),
         callback_max_retries=raw.get("callback_max_retries", 3),
+        audit_db_path=raw.get("audit_db_path", "platform_audit.db"),
     )

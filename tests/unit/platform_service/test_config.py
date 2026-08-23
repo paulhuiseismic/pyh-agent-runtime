@@ -7,6 +7,7 @@ from platform_service.errors import (
     AuthenticationError,
     ChannelNotFoundError,
     ConcurrencyLimitExceededError,
+    QuotaExceededError,
     RequestTimeoutError,
 )
 
@@ -165,3 +166,22 @@ def test_load_config_from_file_defaults_channels_to_empty(tmp_path):
     assert config.channels == []
     assert config.callback_timeout_seconds == 10.0
     assert config.callback_max_retries == 3
+    assert config.audit_db_path == "platform_audit.db"
+
+
+def test_tenant_config_daily_cost_quota_defaults_none():
+    tenant = TenantConfig(api_key="k1", tenant_id="t1", max_concurrent_requests=1)
+    assert tenant.daily_cost_quota_usd is None
+
+
+def test_tenant_config_non_positive_quota_rejected():
+    with pytest.raises(InvalidRequestError):
+        TenantConfig(
+            api_key="k1", tenant_id="t1", max_concurrent_requests=1, daily_cost_quota_usd=0
+        )
+
+
+def test_quota_exceeded_error_fields():
+    err = QuotaExceededError(tenant_id="t1", quota_usd=1.5)
+    assert err.tenant_id == "t1"
+    assert err.quota_usd == 1.5

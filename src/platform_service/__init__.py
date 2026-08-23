@@ -5,12 +5,14 @@
 
 from platform_service.agent_service import AgentService, build_agent_service
 from platform_service.app import create_app
+from platform_service.audit import AuditEntry, AuditStore, UsageSummary
 from platform_service.cli import main as cli_main
 from platform_service.config import ChannelConfig, PlatformConfig, TenantConfig
 from platform_service.errors import (
     AuthenticationError,
     ChannelNotFoundError,
     ConcurrencyLimitExceededError,
+    QuotaExceededError,
     RequestTimeoutError,
 )
 from platform_service.message_gateway import MessageGateway, build_message_gateway
@@ -26,6 +28,9 @@ __all__ = [
     "build_agent_service",
     "create_app",
     "cli_main",
+    "AuditStore",
+    "AuditEntry",
+    "UsageSummary",
     "ChannelConfig",
     "PlatformConfig",
     "TenantConfig",
@@ -38,5 +43,6 @@ __all__ = [
     "AuthenticationError",
     "ChannelNotFoundError",
     "ConcurrencyLimitExceededError",
+    "QuotaExceededError",
     "RequestTimeoutError",
 ]

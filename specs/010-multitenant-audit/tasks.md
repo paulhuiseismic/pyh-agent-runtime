@@ -47,7 +47,7 @@ SQLite 文件驱动，同 003/004 既有测试风格）。
 
 **Purpose**: 测试公共设施准备（无新增第三方依赖）
 
-- [ ] T001 [P] 扩展 tests/unit/platform_service/conftest.py：新增
+- [X] T001 [P] 扩展 tests/unit/platform_service/conftest.py：新增
       `audit_store` fixture（临时文件路径构造的 `AuditStore`，测试
       结束时 `await store.aclose()`）；新增
       `platform_config_with_quota(tenant_id, quota_usd)` 辅助函数
@@ -69,16 +69,16 @@ SQLite 文件驱动，同 003/004 既有测试风格）。
 
 **⚠️ CRITICAL**: 本阶段完成前任何用户故事不能开工
 
-- [ ] T002 扩展 src/platform_service/config.py：`TenantConfig` 新增
+- [X] T002 扩展 src/platform_service/config.py：`TenantConfig` 新增
       可选字段 `daily_cost_quota_usd: float | None = None`（提供时
       `__post_init__` 校验 `> 0`）；`PlatformConfig` 新增
       `audit_db_path: str = "platform_audit.db"`；
       `load_config_from_file` 相应解析两者（均可选，缺省保持
       007-009 已有配置文件的向后兼容）
-- [ ] T003 [P] 扩展 src/platform_service/errors.py：新增
+- [X] T003 [P] 扩展 src/platform_service/errors.py：新增
       `QuotaExceededError(tenant_id, quota_usd)`（独立于内核异常
       层级，同 `ConcurrencyLimitExceededError` 风格）
-- [ ] T004 [P] 创建 src/platform_service/audit.py：`AuditEntry`
+- [X] T004 [P] 创建 src/platform_service/audit.py：`AuditEntry`
       （frozen dataclass：`tenant_id`/`source`/`timestamp`/
       `input_tokens`/`output_tokens`/`cost_usd`/`status`）、
       `UsageSummary`（frozen dataclass：`tenant_id`/`start`/`end`/
@@ -96,9 +96,9 @@ SQLite 文件驱动，同 003/004 既有测试风格）。
       `async def sum_cost_since(tenant_id, since: datetime) ->
       float`（`SELECT COALESCE(SUM(cost_usd), 0)`）、
       `async def aclose() -> None`
-- [ ] T005 [P] 更新 src/platform_service/__init__.py：追加导出
+- [X] T005 [P] 更新 src/platform_service/__init__.py：追加导出
       `AuditStore`、`AuditEntry`、`UsageSummary`、`QuotaExceededError`
-- [ ] T006 [P] 配置/审计存储单元测试
+- [X] T006 [P] 配置/审计存储单元测试
       tests/unit/platform_service/test_config.py（扩展）：
       `daily_cost_quota_usd` ≤0 拒绝、缺省为 `None`；
       `load_config_from_file` 不提供 `audit_db_path` 时默认为

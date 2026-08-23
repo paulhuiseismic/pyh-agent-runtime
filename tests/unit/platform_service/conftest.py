@@ -2,12 +2,16 @@
 httpx.MockTransport 模式）。"""
 
 import asyncio
+import dataclasses
 import json
+import tempfile
+from pathlib import Path
 
 import httpx
 import pytest
 
 from kernel.provider import LLMProvider, ModelPrice, PriceTable
+from platform_service.audit import AuditStore
 from platform_service.config import ChannelConfig, PlatformConfig, TenantConfig
 
 MODEL = "platform-test-model"
@@ -99,6 +103,32 @@ def failing_callback_client(call_counter: list[int]) -> httpx.AsyncClient:
         return httpx.Response(500, json={"error": "callback endpoint down"})
 
     return httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+
+@pytest.fixture
+async def audit_store():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        store = AuditStore(str(Path(tmpdir) / "audit.db"))
+        yield store
+        await store.aclose()
+
+
+def platform_config_with_quota(platform_config: PlatformConfig, tenant_id: str, quota_usd: float) -> PlatformConfig:
+    """把 platform_config 中指定租户替换为携带 daily_cost_quota_usd 的版本。"""
+    tenants = [
+        dataclasses.replace(t, daily_cost_quota_usd=quota_usd) if t.tenant_id == tenant_id else t
+        for t in platform_config.tenants
+    ]
+    return dataclasses.replace(platform_config, tenants=tenants)
+
+
+class _BrokenAuditStore(AuditStore):
+    async def record(self, entry):
+        raise RuntimeError("audit store unavailable")
+
+
+def broken_audit_store() -> AuditStore:
+    return _BrokenAuditStore(":memory:")
 
 
 @pytest.fixture

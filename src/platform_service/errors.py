@@ -20,3 +20,12 @@ class ChannelNotFoundError(Exception):
     def __init__(self, channel_id: str) -> None:
         self.channel_id = channel_id
         super().__init__(f"no channel configured for channel_id={channel_id!r}")
+
+
+class QuotaExceededError(Exception):
+    def __init__(self, tenant_id: str, quota_usd: float) -> None:
+        self.tenant_id = tenant_id
+        self.quota_usd = quota_usd
+        super().__init__(
+            f"tenant {tenant_id!r} exceeded its daily cost quota of {quota_usd} USD"
+        )
